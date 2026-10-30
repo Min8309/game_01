@@ -16,7 +16,7 @@
   for(const x of[-.39,.39])box(.018,.3,.59,x,-.035,-.02,metal,drawer);box(.78,.3,.02,0,-.035,.27,metal,drawer);
   box(.23,.085,.014,0,.095,-.365,paper,drawer).userData=data;box(.21,.024,.035,0,-.025,-.405,handle,drawer).userData=data;
   for(const x of[-.1,.1])box(.022,.055,.06,x,-.015,-.38,handle,drawer).userData=data;
-  box(.59,.03,.36,0,-.14,0,paper,drawer);
+  box(.59,index===2?.20:.03,.36,0,index===2?-.075:-.14,0,paper,drawer);
   drawers.push({group:drawer,progress:0,opened:false,index});
   if(index===2){
     const sign=archive.sign('',.67,.3,true),card=document.createElement('canvas');
@@ -27,10 +27,14 @@
     ink.fillStyle='#203b27';ink.textAlign='center';ink.font='bold 36px serif';
     ink.fillText('이길용 — 기자',256,105);ink.fillText('이상범 — 화가',256,175);
     sign.material.map.dispose();sign.material.map=new T.CanvasTexture(card);
-    sign.rotation.x=-Math.PI/2;sign.position.set(0,-.115,-.08);
-    // 클릭 판정 범위(히트박스)를 서랍 안쪽 전체로 확장
-    const hitBox=new T.Mesh(new T.BoxGeometry(.72,.22,.38),new T.MeshBasicMaterial({visible:false}));
-    hitBox.position.set(0,.05,0);
+    // This is readable puzzle content; only decorative clues may fade on hover.
+    sign.isHintAccent=false;sign.name='cabinet-quiz-card';
+    sign.material.transparent=false;sign.material.opacity=1;sign.material.depthWrite=true;sign.material.toneMapped=false;
+    // Rest inside the drawer, above the paper stack; text faces the player looking down.
+    sign.rotation.set(-Math.PI/2,0,Math.PI);sign.position.set(0,.035,-.06);
+    // Match the hit area to the visible card, without covering neighboring drawers.
+    const hitBox=new T.Mesh(new T.BoxGeometry(.69,.32,.025),new T.MeshBasicMaterial({visible:false}));
+    hitBox.position.set(0,0,0);
     sign.add(hitBox);
     drawer.add(sign);
     sign.visible=false;note=sign;

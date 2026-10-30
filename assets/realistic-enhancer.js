@@ -321,7 +321,7 @@
     if (!scene || !THREE) return;
 
     scene.traverse(function(node) {
-      if (!node.isMesh || !node.geometry) return;
+      if (!node.isMesh || !node.geometry || node.name==='cabinet-quiz-card') return;
       var geom = node.geometry;
 
       // 1) 바닥 평면 메쉬인 경우 (Y축 높이 0 근처)
@@ -643,7 +643,7 @@
     if (!game) return;
 
     // window.scene 직접 접근을 피하고 game.sceneAPI / game.scene 경유
-    var THREE = window.THREE || game.sceneAPI;
+    var THREE = Object.assign({RepeatWrapping:1000,DoubleSide:2,AdditiveBlending:2},window.THREE||game.sceneAPI);
     var scene = game.scene;
     if (!scene) return;
 

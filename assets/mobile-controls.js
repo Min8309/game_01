@@ -25,28 +25,41 @@
     // Aim assistance for small green clues, limited to nearby visible objects.
     var assistedTargets=[],nextTargetScan=0,assistPoint=new game.sceneAPI.Vector3(),assistForward=new game.sceneAPI.Vector3(),assistDirection=new game.sceneAPI.Vector3();
     var assistRay=new interaction.raycaster.constructor();
+    var assistOcclusionPoint=new game.sceneAPI.Vector3();
     var assistBounds=new game.sceneAPI.Box3(),nextAssistCheck=0,lastAssistedTarget=null,nearbyClues=[];
     var originalInteractionUpdate=interaction.update.bind(interaction);
     function visibleObject(object){for(var parent=object;parent;parent=parent.parent)if(!parent.visible)return false;return true;}
     function belongsTo(object,target){for(var parent=object;parent;parent=parent.parent)if(parent===target)return true;return false;}
-    interaction.update=function(){
-      originalInteractionUpdate();if(!canExplore()||this.isInspecting)return;
+    interaction.update=function(force=false){
+      originalInteractionUpdate(force);if(!canExplore()||this.isInspecting)return;
       var now=performance.now();if(now>=nextTargetScan){nextTargetScan=now+500;assistedTargets=[];game.scene.traverse(function(object){if(object.userData?.isInteractable&&object.userData.clueId&&object.userData.type!=='drawer_locked')assistedTargets.push(object);});}
       var current=this.currentInteractable;
-      if(now<nextAssistCheck){if(current?.clueId&&current.type!=='drawer_locked')return;if(lastAssistedTarget){this.currentInteractable=lastAssistedTarget;this.setPrompt(lastAssistedTarget);}return;}nextAssistCheck=now+100;
+      if(!force&&now<nextAssistCheck){if(current?.clueId&&current.type!=='drawer_locked')return;if(lastAssistedTarget){this.currentInteractable=lastAssistedTarget;this.setPrompt(lastAssistedTarget);}return;}nextAssistCheck=now+100;
       game.camera.getWorldDirection(assistForward);var best=null,bestScore=Infinity;nearbyClues=[];
       for(var target of assistedTargets){
         if(!visibleObject(target))continue;assistBounds.setFromObject(target);assistBounds.clampPoint(game.camera.position,assistPoint);if(assistPoint.distanceToSquared(game.camera.position)<.0001)target.getWorldPosition(assistPoint);assistDirection.subVectors(assistPoint,game.camera.position);var distance=assistDirection.length();if(distance>2.6||distance<.01)continue;assistDirection.normalize();var alignment=assistDirection.dot(assistForward);if(alignment<.15)continue;
-        assistRay.set(game.camera.position,assistDirection);assistRay.far=distance+.25;var blocked=false;
-        for(var hit of assistRay.intersectObjects(game.scene.children,true)){if(!visibleObject(hit.object))continue;if(belongsTo(hit.object,target))break;var material=hit.object.material;if(material&&!Array.isArray(material)&&!material.transparent&&hit.distance<distance-.2){blocked=true;break;}}
+        assistRay.set(game.camera.position,assistDirection);assistRay.far=distance+.25;var blocked=game.room.colliders.some(function(box){if(box.containsPoint(game.camera.position))return false;var hit=assistRay.ray.intersectBox(box,assistOcclusionPoint);return hit&&hit.distanceTo(game.camera.position)<distance-.2;});
+        if(blocked)continue;
+        for(var hit of assistRay.intersectObjects(game.performanceControls?game.performanceControls.candidates():game.scene.children,!game.performanceControls)){if(!visibleObject(hit.object))continue;if(belongsTo(hit.object,target)){for(var owner=hit.object;owner&&owner!==target;owner=owner.parent){if(owner.userData?.isInteractable&&owner.userData.clueId&&owner.userData.clueId!==target.userData.clueId){blocked=true;break;}}break;}var material=hit.object.material;if(material&&!Array.isArray(material)&&!material.transparent&&hit.distance<distance-.2){blocked=true;break;}}
         if(blocked)continue;if(!nearbyClues.some(function(item){return item.clueId===target.userData.clueId;}))nearbyClues.push(target.userData);var score=distance+(1-alignment)*1.5;if(score<bestScore){best=target.userData;bestScore=score;}
       }
-      if(current?.clueId&&current.type!=='drawer_locked')best=current;lastAssistedTarget=best;if(best){this.currentInteractable=best;this.setPrompt(best);}
+      if(current?.clueId&&current.type!=='drawer_locked'&&nearbyClues.some(function(item){return item.clueId===current.clueId;}))best=current;
+      // Exact crosshair hits win over the larger bounds of a parent drawer.
+      var aim=game.performanceControls?.aimHit,owner=aim?.object;
+      if(aim&&aim.distance<=2.6&&visibleObject(owner)){
+        while(owner&&!owner.userData?.isInteractable)owner=owner.parent;
+        if(owner?.userData.clueId&&owner.userData.type!=='drawer_locked'){
+          assistDirection.copy(aim.point).sub(game.camera.position).normalize();assistRay.set(game.camera.position,assistDirection);
+          var aimBlocked=game.room.colliders.some(function(box){if(box.containsPoint(game.camera.position))return false;var hit=assistRay.ray.intersectBox(box,assistOcclusionPoint);return hit&&hit.distanceTo(game.camera.position)<aim.distance-.2;});
+          if(!aimBlocked)best=owner.userData;
+        }
+      }
+      lastAssistedTarget=best;this.currentInteractable=best;this.setPrompt(best);
     };
     var nearbyDialog=document.createElement('dialog');nearbyDialog.id='mobile-nearby-clues';nearbyDialog.setAttribute('aria-label','가까운 초록 단서 선택');document.body.appendChild(nearbyDialog);
     var choosingClue=false;
     function chooseNearbyClue(){reset();choosingClue=false;nearbyDialog.replaceChildren();var heading=document.createElement('h2');heading.textContent='가까운 초록 단서';nearbyDialog.appendChild(heading);for(var data of nearbyClues){var option=document.createElement('button');option.type='button';option.textContent=data.name;option.dataset.clueId=data.clueId;option.onclick=(function(clue){return function(){choosingClue=true;nearbyDialog.close();interaction.triggerInspect(clue);};})(data);nearbyDialog.appendChild(option);}var cancel=document.createElement('button');cancel.textContent='닫고 계속 탐색';cancel.onclick=function(){nearbyDialog.close();};nearbyDialog.appendChild(cancel);interaction.isInspecting=true;controls.unlock();nearbyDialog.showModal();}
-    nearbyDialog.addEventListener('close',function(){interaction.isInspecting=false;if(!choosingClue&&!game.gameEnded&&!game.ending&&!document.hidden)controls.lock();choosingClue=false;});
+    nearbyDialog.addEventListener('close',function(){if(!choosingClue){interaction.isInspecting=false;if(!game.gameEnded&&!game.ending&&!document.hidden)controls.lock();}choosingClue=false;});
     var moveId = null, lookId = null, lastX = 0, lastY = 0, moveStrength = 0;
     function canExplore() {
       return !game.gameEnded && !game.ending &&
@@ -124,6 +137,7 @@
         if (!canExplore()) return;
         var key = button.dataset.key;
         if (button.classList.contains('mobile-pickup')) {
+          interaction.refreshTarget?.();
           if (!interaction) return;
           if (interaction.isInspecting) { interaction.closeInspect(); return; }
           if (nearbyClues.length > 1 && nearbyClues.some(function(item) { return item.clueId === interaction.currentInteractable?.clueId; })) {
@@ -206,7 +220,7 @@
     window.addEventListener('blur', function () { reset(); controls.unlock(); });
     document.addEventListener('visibilitychange', function () { if (document.hidden) { reset(); controls.unlock(); } });
     window.addEventListener('resize', reset);
-    game.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    game.renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
     document.querySelector('.start-btn-pulse').textContent = '화면을 터치하여 진입';
     document.querySelector('.controls-guide-box').textContent = '왼쪽 조이스틱: 이동 · 화면 드래그: 시선 · 오른쪽 버튼: 픽업 / 조사 · 가로 화면 권장';
     sync();

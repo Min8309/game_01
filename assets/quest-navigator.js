@@ -60,7 +60,7 @@
     cabinet: [-3.6, 1.2, 5.0],
     book: [1.0, 0.15, -6.2],
     cursed_key: [-4.28, 1.25, 2.0],
-    exit_note: [0, 0.93, -20.1],
+    exit_note: [0, 1.62, -22.29],
     archive_entrance: [4.94, 1.4, -2.7],
     archive_records: [22.0, -2.57, -2.7],
     archive_language: [18.7, -1.8, -5.95],
@@ -116,7 +116,9 @@
         } else if (!hasItem('rusty_key') && !hasItem('hair_entangled_key') && !keyPlaced) {
           target = { name: '선반의 [머리카락 엉킨 열쇠] 획득', pos: CLUE_COORDS.cursed_key, room: '1층 식자실' };
         } else if (!keyPlaced) {
-          target = { name: '철문 안 책상에 [열쇠 올려놓기]', pos: CLUE_COORDS.exit_note, room: '1층 출구 방' };
+          target = { name: '출구방 [사건 지도에 열쇠 삽입]', pos: CLUE_COORDS.exit_note, room: '1층 출구 방' };
+        } else if (!exitRoom.mapPuzzle.solved) {
+          target = { name: '사건 지도의 현장 네 곳 연결', pos: CLUE_COORDS.exit_note, room: '1층 사건 조사실' };
         } else {
           target = { name: '오른쪽 벽 [지하 자료실 입구] 내려가기', pos: CLUE_COORDS.archive_entrance, room: '1층 식자실' };
         }
@@ -179,8 +181,8 @@
     var clueCountEl = document.getElementById('sikjaClueCount');
     if (clueCountEl) {
       var count = 0;
-      if (solvedSet) count = Math.min(4, solvedSet.size);
-      else if (window.$ && window.$.inspectedClues) count = Math.min(4, window.$.inspectedClues.size);
+      if (solvedSet) count = Math.min(14, solvedSet.size+(exitRoom?.mapPuzzle.solved?1:0));
+      else if (window.$ && window.$.inspectedClues) count = Math.min(14, window.$.inspectedClues.size);
       clueCountEl.textContent = count;
     }
 

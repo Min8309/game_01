@@ -37,8 +37,8 @@ function install(game){
  }
  function hasExitKey(){return exitRoom.keyPlaced||game.sharedInventory.hasItem('rusty_key');}
  function mainReady(){return state.complete('main')&&hasExitKey();}
- function mainNext(){return exitRoom.keyPlaced?'지하실 문이 열렸습니다. 오른쪽 자료실 문으로 내려가세요.':hasExitKey()?'철문 안 책상 위 종이에 머리카락 엉킨 열쇠를 올려놓으세요.':'1층 왼쪽 선반의 머리카락 엉킨 열쇠를 챙기세요.';}
- function syncDoors(){if(mainReady()&&game.room.openDoor())game.soundManager.playMetalDoorOpen();archive.unlocked=state.complete('main')&&exitRoom.keyPlaced;}
+ function mainNext(){return exitRoom.mapPuzzle.solved?'지하실 문이 열렸습니다. 오른쪽 자료실 문으로 내려가세요.':exitRoom.keyPlaced?'출구방 사건 지도의 현장 네 곳을 시간순으로 연결하세요.':hasExitKey()?'철문 안 사건 지도에 머리카락 엉킨 열쇠를 삽입하세요.':'1층 왼쪽 선반의 머리카락 엉킨 열쇠를 챙기세요.';}
+ function syncDoors(){if(mainReady()&&game.room.openDoor())game.soundManager.playMetalDoorOpen();archive.unlocked=state.complete('main')&&exitRoom.mapPuzzle.solved;}
  function node(tag,text,parent){const e=document.createElement(tag);e.textContent=text;if(parent)parent.appendChild(e);return e;}
  function shell(title){view.replaceChildren();bar.replaceChildren();const host=node('section','',view);host.className='gm-expansion history-puzzle';node('h2',title,host);return host;}
  function goal(){const room=game.camera.position.x>=35?'photos':game.camera.position.x>=28?'darkroom':game.camera.position.x>=14?'archive':'main';const remaining=state.remaining(room);const text=remaining.length?`${ROOMS[room]} · 남은 ${remaining.length}개 · 다음: ${remaining[0].place} [${remaining[0].level}]`:room==='main'?('1층 완료 · '+mainNext()):room==='archive'?'자료실 완료 · 끝의 검은 커튼 →':room==='darkroom'?'암실 완료 · 뒤쪽 검은 커튼 →':'모든 기록을 복원했습니다.';const objective=document.getElementById('exploration-objective');if(objective) {if(objective.textContent!==text)objective.textContent=text;objective.hidden=false;}if(archive.notice.textContent!==text)archive.notice.textContent=text;archive.notice.hidden=room==='main';return text;}
@@ -118,28 +118,29 @@ function install(game){
  }
  function inspectKey(){
   const host=shell('머리카락 엉킨 열쇠');game.interactionManager.inspectTagEl.textContent='1층 식자실 · 소지품';
-  if(hasExitKey()){node('p',exitRoom.keyPlaced?'열쇠는 철문 안 책상의 종이 위에 놓여 있습니다.':'열쇠를 이미 챙겼습니다.',host);return;}
+  if(hasExitKey()){node('p',exitRoom.keyPlaced?'열쇠는 출구방 사건 지도 잠금장치에 삽입되어 있습니다.':'열쇠를 이미 챙겼습니다.',host);return;}
   node('p','붉은 실과 검은 머리카락이 녹슨 열쇠를 감고 있습니다.',host);
-  const take=node('button','머리카락 엉킨 열쇠 챙기기',host);take.type='button';take.onclick=()=>{if(game.gameEnded||!cursedKey||game.camera.position.distanceTo(cursedKey.position)>3.5||hasExitKey())return;game.sharedInventory.addItem({id:'rusty_key',name:'머리카락 엉킨 열쇠',desc:'철문 안 책상 위 종이에 올려놓을 녹슨 열쇠.'});cursedKey.visible=false;cursedKey.traverse(o=>o.visible=false);game.soundManager.playDrawerUnlock();syncDoors();inspectKey();goal();};
+  const take=node('button','머리카락 엉킨 열쇠 챙기기',host);take.type='button';take.onclick=()=>{if(game.gameEnded||!cursedKey||game.camera.position.distanceTo(cursedKey.position)>3.5||hasExitKey())return;game.sharedInventory.addItem({id:'rusty_key',name:'머리카락 엉킨 열쇠',desc:'출구방 사건 지도 잠금장치에 삽입할 녹슨 열쇠.'});cursedKey.visible=false;cursedKey.traverse(o=>o.visible=false);game.soundManager.playDrawerUnlock();syncDoors();inspectKey();goal();};
  }
  function inspectExitPaper(){
-  const host=shell('책상 위의 종이');game.interactionManager.inspectTagEl.textContent='1층 철문 안';
-  node('p',exitRoom.keyPlaced?'머리카락 엉킨 열쇠가 종이 위에 놓여 있다. 지하실 문이 열렸다.':'머리카락 엉킨 열쇠를 이 종이 위에 올려놓으시오.',host).className='history-exit-message';
-  if(exitRoom.keyPlaced)return;
-  exitRoom.found=true;const place=node('button','종이 위에 머리카락 엉킨 열쇠 올려놓기',host);place.type='button';place.disabled=!game.sharedInventory.hasItem('rusty_key');
-  place.onclick=()=>{if(game.gameEnded||!mainReady()||game.room.doorOpenProgress<1||game.camera.position.distanceTo(exitRoom.note.position)>3.5||exitRoom.keyPlaced||!game.sharedInventory.removeItem('rusty_key'))return;exitRoom.placeKey(cursedKey);syncDoors();archive.open=true;game.soundManager.playMetalDoorOpen();inspectExitPaper();goal();};
+  exitRoom.found=true;
+  window.GyeongExitCaseMap.render(game,exitRoom,{
+   canInsert:()=>!game.gameEnded&&mainReady()&&game.room.doorOpenProgress>=1&&exitRoom.isInside()&&game.sharedInventory.hasItem('rusty_key'),
+   insert:()=>{if(game.gameEnded||!mainReady()||game.room.doorOpenProgress<1||!exitRoom.isInside()||exitRoom.keyPlaced||!game.sharedInventory.removeItem('rusty_key'))return false;exitRoom.insertKey(cursedKey);game.soundManager.playDrawerUnlock();goal();return true;},
+   solved:()=>{if(game.gameEnded||!exitRoom.keyPlaced||!exitRoom.mapPuzzle.solved)return;syncDoors();archive.open=archive.unlocked;exitRoom.updateBoard();game.historyGame.audio.play('correct');game.soundManager.playMetalDoorOpen();goal();}
+  });
  }
  // Capture before legacy inspection listeners so old puzzles cannot replace the new tasks.
  const nativeRender=game.inspectViewRenderer.render.bind(game.inspectViewRenderer);
  const mapped={clock:'clock',calendar:'calendar',drawer_24:'drawer',proof:'proof',newspaper:'proof',history_poster:'poster',history_cabinet:'cabinet',history_book:'book',history_archive_hint:'archive-language'};
  const guided={mirror_plate:'calendar',drawer_locked:'drawer',desk:'proof',galley_slot:'proof',print_roller:'proof',cursed_cube:'cabinet',glasses:'cabinet',apron:'cabinet',rack:'book',type_rack_label:'book',censor_poster:'poster',radio:'book',mobile_archive_hint:'archive-language'};
- function handled(data){return Boolean(mapped[data.type]||guided[data.type]||['cursed_key','history_exit_note','history_cabinet_drawer','mobile_archive_records','mobile_darkroom_station','drying_missing_photo','drying_missing_note','mobile_archive_door','mobile_darkroom_curtain'].includes(data.type)||data.clueId==='clue_exit_door');}
+ function handled(data){return Boolean(mapped[data.type]||guided[data.type]||['cursed_key','history_exit_note','history_exit_map','history_cabinet_drawer','mobile_archive_records','mobile_darkroom_station','drying_missing_photo','drying_missing_note','mobile_archive_door','mobile_darkroom_curtain'].includes(data.type)||data.clueId==='clue_exit_door');}
  game.inspectViewRenderer.render=data=>{if(!handled(data)){nativeRender(data);game.interactionManager.inspectTagEl.textContent+=' · 선택 장치 · 난이도 중';}};
  window.addEventListener('space-inspect',event=>{const data=event.detail;if(!handled(data))return;event.stopImmediatePropagation();
   if(mapped[data.type])quiz(mapped[data.type]);
   else if(guided[data.type])directGuide(guided[data.type]);
   else if(data.type==='cursed_key')inspectKey();
-  else if(data.type==='history_exit_note')inspectExitPaper();
+  else if(data.type==='history_exit_note'||data.type==='history_exit_map')inspectExitPaper();
   else if(data.type==='history_cabinet_drawer'){cabinet.open(data.drawerIndex);game.interactionManager.closeInspect();}
   else if(data.clueId==='clue_exit_door')route();
   else if(data.type==='mobile_archive_door'){const host=shell('지하실 문');node('p',archive.unlocked?'지하실 문이 열렸습니다. 계단을 내려가세요.':'지하실 문은 아직 봉인되어 있습니다.',host);}
@@ -173,7 +174,7 @@ function install(game){
  game.renderer.domElement.addEventListener('click',event=>{const interaction=game.interactionManager;if(event.button===0&&game.playerControls.controls.isLocked&&!game.gameEnded&&!interaction.isInspecting&&interaction.currentInteractable?.type==='history_poster')interaction.triggerInspect(interaction.currentInteractable);});
  cabinet=window.GyeongCabinetProp.create(game,archive);game.historyGame.cabinet=cabinet;
  exitRoom=window.GyeongExitRoom.create(game,archive);game.historyGame.exitRoom=exitRoom;
- game.historyGame.hoverLabels.push({object:exitRoom.note,text:'테이블 위의 종이'});
+ game.historyGame.hoverLabels.push({object:exitRoom.note,text:'붉은 실의 사건 지도 · 열쇠 삽입'});
  // Worn hardcover game prop; its generated texture is not a historical book facsimile.
  const T=game.sceneAPI,book=new T.Group();book.position.set(1,0,-6.2);book.rotation.y=-.28;
  const bookData={isInteractable:true,clueId:'history_book',type:'history_book',name:'복도의 책 · 난이도 상',description:'바닥에 떨어진 책. 가까이 겨냥하면 기록을 읽을 수 있다.'};book.userData=bookData;game.scene.add(book);game.furniture.interactables.push(book);
@@ -196,7 +197,7 @@ game.scene.traverse(object=>{const data=object.userData,q=QUESTIONS.find(q=>q.id
     const solved=state.solved.has(q.id);
     const hintText=!solved&&q.hints?` — ${q.hints[0]}`:'';
     node('p',`${solved?'✓':'未'} ${q.place} (${q.title}) · 난이도 ${q.level}${hintText}`,records);
-  }}};
+  }}node('h4','1층 사건 조사실',records);node('p',`${exitRoom.mapPuzzle.solved?'✓':'未'} 붉은 실의 사건 지도 · ${exitRoom.keyPlaced?'현장 네 곳을 시간순으로 연결':'열쇠를 지도 잠금장치에 삽입'}`,records);};
  game.notebookUI.render();
  const guide=node('button','진행 안내');guide.type='button';guide.id='history-progress-button';guide.style.display='none';document.body.appendChild(guide);guide.onclick=()=>{if(game.gameEnded||!game.playerControls.controls.isLocked)return;game.interactionManager.triggerInspect({type:'history_progress',name:'방별 기록과 힌트',description:'다음 방의 봉인을 풀기 위한 안내'});list(game.camera.position.x>=35?'photos':game.camera.position.x>=28?'darkroom':game.camera.position.x>=14?'archive':'main','방별 기록 · 진행 안내');};
  game.playerControls.controls.addEventListener('lock',()=>{guide.hidden=game.gameEnded;});game.playerControls.controls.addEventListener('unlock',()=>{guide.hidden=true;});guide.hidden=true;

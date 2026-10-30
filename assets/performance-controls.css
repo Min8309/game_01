@@ -1,0 +1,9 @@
+/* The timer belongs above the canvas and below modal dialogs. */
+#play-timer{position:fixed!important;top:108px!important;right:max(16px,env(safe-area-inset-right))!important;z-index:85!important}
+#play-timer:not(.running),#play-timer[hidden]{display:none!important}
+.touch-game #play-timer{top:104px!important;padding:5px 9px!important}
+.film-grain{animation:none!important}
+.reduced-game-effects .film-grain,.touch-game .film-grain{display:none!important}
+.reduced-game-effects .color-grade,.touch-game .color-grade{mix-blend-mode:normal}
+@media(prefers-reduced-motion:reduce){.film-grain{display:none!important}}
+#inspect-modal,#notebook-modal{z-index:300!important}

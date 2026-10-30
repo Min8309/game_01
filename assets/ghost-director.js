@@ -201,26 +201,10 @@
       }
     }
 
-    warmup(renderer, scene, camera) {
-      if (!renderer) return;
-      var targetScene = scene || this.scene;
-      var targetCam = camera || this.camera;
-      this.textures.forEach((texture) => {
-        if (renderer.initTexture && texture && texture.image) {
-          try { renderer.initTexture(texture); } catch (e) {}
-        }
-        if (this.material && targetScene && targetCam) {
-          this.material.map = texture;
-          this.material.needsUpdate = true;
-          try {
-            renderer.compile(targetScene, targetCam);
-          } catch (e) {}
-        }
-      });
-      if (this.material) {
-        this.material.map = null;
-        this.material.needsUpdate = true;
-      }
+    warmup(renderer) {
+      if(!renderer?.initTexture)return;
+      if(!this.warmedTextures)this.warmedTextures=new WeakSet();
+      this.textures.forEach(texture=>{if(!texture?.image||this.warmedTextures.has(texture))return;try{renderer.initTexture(texture);this.warmedTextures.add(texture);}catch{}});
     }
 
     applyFrame(ghost, frameIdx) {
