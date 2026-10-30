@@ -7,3 +7,6 @@
 .reduced-game-effects .color-grade,.touch-game .color-grade{mix-blend-mode:normal}
 @media(prefers-reduced-motion:reduce){.film-grain{display:none!important}}
 #inspect-modal,#notebook-modal{z-index:300!important}
+
+/* Avoid full-screen blur compositing on machines already using low quality. */
+.reduced-game-effects #inspect-modal,.reduced-game-effects #notebook-modal,.reduced-game-effects #start-screen{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}

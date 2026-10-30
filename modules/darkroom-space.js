@@ -7,7 +7,7 @@ class DarkroomSpace{
   this.game=game;this.T=T;this.archive=archive;this.room=game.room;this.group=new T.Group();this.group.name='mobile-darkroom-spaces';game.scene.add(this.group);this.curtains=[];this.photos=[];this.pulseLights=[];this.zone='archive';this.developed=false;
   this.originalFlashlightColor=game.lighting.flashlight.color.clone();this.originalAmbientColor=archive.ambient.color.clone();
   this.mats={...archive.materials,curtain:new T.MeshStandardMaterial({color:0x121217,roughness:.95,side:2}),metal:new T.MeshStandardMaterial({color:0x555b54,roughness:.65,metalness:.6}),liquid:new T.MeshStandardMaterial({color:0x343b2f,roughness:.2,metalness:.15}),bottle:new T.MeshStandardMaterial({color:0x42351d,roughness:.3,metalness:.2})};
-  this.cutArchiveExit();this.buildRooms();this.buildWorkstations();this.buildPhotographs();this.buildMissingPerson();this.installUpdate();
+  this.cutArchiveExit();this.buildRooms();const shell=this.group;this.contents=new T.Group();this.contents.name="darkroom-contents";shell.add(this.contents);this.group=this.contents;this.buildWorkstations();this.buildPhotographs();this.buildMissingPerson();this.group=shell;this.installUpdate();
   Promise.all([...game.ghostEncounters.pending.values()]).then(()=>{const types=window.SikjasilGhosts.GHOSTS;this.photos.forEach((mesh,index)=>{const texture=game.ghostEncounters.textures.get(types[index%types.length].id);if(texture){mesh.material.map=texture;mesh.material.needsUpdate=true;}});});
  }
  box(w,h,d,x,y,z,mat,collide=false,parent=this.group){return this.archive.box(w,h,d,x,y,z,mat,collide,parent);}
@@ -117,11 +117,8 @@ class DarkroomSpace{
     playBeat(0.88,48,0.55);
   }
 
-  setTimeout(()=>{
-    if(this.game.renderer?.compile&&this.game.scene&&this.game.camera){
-      try{this.game.renderer.compile(this.game.scene,this.game.camera);}catch(e){}
-    }
-  },500);
+  // Shader variants are prepared with the bounded light pool before play.
+  // Recompiling here sees every source light and stalls the doorway transition.
 
   setTimeout(()=>{
     this.game.soundManager?.playFlashlightClick?.();

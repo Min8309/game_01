@@ -63,13 +63,13 @@
     exit_note: [0, 1.62, -22.29],
     archive_entrance: [4.94, 1.4, -2.7],
     archive_records: [22.0, -2.57, -2.7],
-    archive_language: [18.7, -1.8, -5.95],
+    archive_language: [18.7, -1.8, -5.16],
     darkroom_door: [28.0, -2.2, -2.7],
     darkroom_photo: [32.3, -2.57, -0.36],
     photo_curtain: [35.0, -2.2, -2.7],
-    photo_0: [38.3, -2.0, -5.42],
-    photo_1: [38.3, -2.0, -3.0],
-    photo_2: [38.3, -2.0, -0.6]
+    photo_0: [36.0, -2.0, -5.42],
+    photo_1: [38.3, -2.0, -5.42],
+    photo_2: [40.6, -2.0, -5.42]
   };
 
   // 다음 목표 결정 (퍼즐 상태 실시간 동기화)
@@ -81,6 +81,8 @@
 
     // 히스토리 모드 상태 확인
     var hg = gameInstance.historyGame;
+    if(!vProj){vProj=gameInstance.camera.position.clone();forwardVec=vProj.clone();toTargetVec=vProj.clone();}
+    gameInstance.mobileDarkroom?.missingPhotos?.forEach(function(photo,index){photo.getWorldPosition(vProj);CLUE_COORDS['photo_'+index]=[vProj.x,vProj.y,vProj.z];});
     var state = hg ? hg.state : null;
     var solvedSet = state ? state.solved : null;
     var isSolved = function(id) {
@@ -145,7 +147,7 @@
       if (hg && !isSolved('archive-source')) {
         target = { name: '중앙 책상의 검열 기록 복원', pos: CLUE_COORDS.archive_records, room: '지하 자료실' };
       } else if (hg && !isSolved('archive-language')) {
-        target = { name: '선반의 우리말 기록 풀기', pos: CLUE_COORDS.archive_language, room: '지하 자료실' };
+        target = { name: '책장 앞 우리말 기록 풀기', pos: CLUE_COORDS.archive_language, room: '지하 자료실' };
       } else {
         target = { name: '자료실 끝 암실 철문 열기', pos: CLUE_COORDS.darkroom_door, room: '자료실 끝' };
       }
@@ -212,6 +214,7 @@
       return;
     }
 
+    if(!gameInstance.startScreen.classList.contains('hidden')||gameInstance.interactionManager.isInspecting||gameInstance.notebookUI.isOpen){bannerEl.style.display='none';return;}
     var cam = gameInstance.camera;
     var tPos = currentTarget.pos;
 
@@ -224,9 +227,9 @@
     if (bannerEl.style.display === 'none') bannerEl.style.display = 'flex';
     markerEl.style.display = 'none'; // 초록 목표 마커 표시 끄기 유지
 
-    qtBadgeEl.textContent = currentTarget.room;
-    qtTextEl.textContent = currentTarget.name;
-    qtDistEl.textContent = dist.toFixed(1) + 'm';
+    if(qtBadgeEl.textContent!==currentTarget.room)qtBadgeEl.textContent = currentTarget.room;
+    if(qtTextEl.textContent!==currentTarget.name)qtTextEl.textContent = currentTarget.name;
+    if(qtDistEl.textContent!==dist.toFixed(1) + 'm')qtDistEl.textContent = dist.toFixed(1) + 'm';
 
     // Three.js 벡터 싱글톤 초기화
     var THREE = window.THREE;

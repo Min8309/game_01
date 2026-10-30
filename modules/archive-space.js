@@ -8,7 +8,7 @@ class ArchiveSpace{
   this.game=game;this.T=THREE;this.scene=game.scene;this.room=game.room;this.player=game.playerControls;this.open=false;this.unlocked=false;this.progress=0;this.zone='main';this.solved=false;this.originalLocationTitle=document.querySelector('.location-title').textContent;
   this.group=new THREE.Group();this.group.name='mobile-underground-archive';this.scene.add(this.group);
   this.ambient=new THREE.AmbientLight(0x819386,.25);this.ambient.visible=false;this.group.add(this.ambient);
-  this.materials=this.makeMaterials();this.cutDoorway();this.buildEntrance();this.buildStairs();this.buildArchive();this.buildEditingProps();this.installMovement();
+  this.materials=this.makeMaterials();this.cutDoorway();this.buildEntrance();this.buildStairs();this.buildArchive();const shell=this.group;this.group=this.contents;this.buildEditingProps();this.group=shell;this.installMovement();
   this.originalFog={color:this.scene.fog.color.clone(),density:this.scene.fog.density};
   this.notice=document.createElement('div');this.notice.id='archive-route-notice';this.notice.setAttribute('role','status');document.body.appendChild(this.notice);this.notice.hidden=true;
  }
@@ -61,6 +61,7 @@ class ArchiveSpace{
   this.box(14,3.6,.22,21,f+1.8,-6.2,stone,true);this.box(14,3.6,.22,21,f+1.8,.8,stone,true);this.box(.24,5.35,7,28,f+2.675,-2.7,stone,true);
   const vault=new this.T.Mesh(new this.T.CylinderGeometry(3.5,3.5,14,24,1,true,0,Math.PI),stone);vault.rotation.z=Math.PI/2;vault.position.set(21,f+1.8,-2.7);this.group.add(vault);
   for(const x of[14.2,17.6,21,24.4,27.7]){const rib=new this.T.Mesh(new this.T.CylinderGeometry(3.43,3.43,.14,24,1,true,0,Math.PI),iron);rib.rotation.z=Math.PI/2;rib.position.set(x,f+1.8,-2.7);this.group.add(rib);}
+  const shell=this.group;this.contents=new this.T.Group();this.contents.name="archive-contents";shell.add(this.contents);this.group=this.contents;
   // One instanced draw for the many book/document piles.
   const books=new this.T.InstancedMesh(new this.T.BoxGeometry(1,1,1),paper,240);const transform=new this.T.Object3D();let bookIndex=0;
   for(const z of[-5.68,.28])for(let bay=0;bay<5;bay++){const x=15.35+bay*2.5;this.box(1.9,2.4,.12,x,f+1.2,z,wood);for(const side of[-.94,.94])this.box(.08,2.4,.8,x+side,f+1.2,z,iron,true);for(let shelf=0;shelf<4;shelf++){const y=f+.25+shelf*.56;this.box(1.95,.07,.85,x,y,z,wood,true);for(let b=0;b<6;b++){transform.position.set(x-.76+b*.29,y+.08+(b%2)*.04,z);transform.scale.set(.23,.11+(b%3)*.035,.45+(b%2)*.15);transform.rotation.set(0,(b%3-1)*.12,0);transform.updateMatrix();books.setMatrixAt(bookIndex++,transform.matrix);}}}
@@ -70,13 +71,13 @@ class ArchiveSpace{
   const table=this.box(2.1,.14,1.1,22,f+.92,-2.7,wood,true);for(const dx of[-.9,.9])for(const dz of[-.42,.42])this.box(.09,.92,.09,22+dx,f+.46,-2.7+dz,iron,true);
   const dossier=this.box(.62,.06,.48,22,f+1.03,-2.7,paper);dossier.userData={isInteractable:true,clueId:'mobile_archive_records',type:'mobile_archive_records',name:'지하 편집실 검열문 대조 작업대',description:'붉은 압수 도장이 찍힌 검열 기사 대장과 회전식 날짜 스탬프. 서랍 틈의 천공 먹지를 맞춰야 한다.'};
   this.editingData=dossier.userData;this.markPuzzle(22,f+1.065,-2.7,.7,.55);const label=this.sign('檢閱 · 퍼즐',.6,.16,true);label.rotation.x=-Math.PI/2;label.position.set(22,f+1.067,-2.7);label.userData=dossier.userData;this.group.add(label);
-  for(const [x,z,text] of [[20,-5.15,'발행일 11월 24일'],[22.6,-2.7,'날짜 스탬프 1124']]){
+  for(const [x,z,text] of [[20,-5.15,'자료 A는 B에 포함'],[22.6,-2.7,'정정표 · 2명 제외']]){
    const note=this.sign(text,1.4,.35,true);note.position.set(x,f+1.65,z);
-   note.userData={isInteractable:true,type:'mobile_archive_hint',clueId:'archive_date_note_'+x,name:'편집자의 초록 날짜 메모',description:'검열 기사 발행일은 11월 24일. 날짜 스탬프에는 월 두 자리 11과 일 두 자리 24를 이어 1124를 넣으세요. 중앙 책상에서 먹지를 얻고 한 번에 맞춘 뒤 스탬프를 찍으면 암실 열쇠가 나옵니다.'};this.group.add(note);
+   note.userData={isInteractable:true,type:'mobile_archive_hint',clueId:'archive_date_note_'+x,name:'편집자의 자료 대조 메모',description:'중앙 책상의 A·B·C 명단을 비교하세요. A의 이름은 B에 이미 들어 있으며, 마지막 정정표까지 반영해야 합니다.'};this.group.add(note);
   }
   const exit=this.sign('植字室 ←',1.1,.28);exit.rotation.y=Math.PI/2;exit.position.set(14.13,f+2.95,-2.7);this.group.add(exit);
   this.light(16.5,f+3.15,-2.7,16);this.light(21.2,f+3.4,-2.7,22);this.light(25.8,f+3.15,-2.7,14);
-  this.rubble=new this.T.InstancedMesh(new this.T.BoxGeometry(1,1,1),dark,42);for(let i=0;i<42;i++){transform.position.set(14.8+(i%12)*1.04,f+.03,i%2?-.9:-4.5);transform.scale.set(.04+(i%4)*.035,.035,.07+(i%3)*.025);transform.rotation.set(i,.5*i,i*.7);transform.updateMatrix();this.rubble.setMatrixAt(i,transform.matrix);}this.group.add(this.rubble);
+  this.rubble=new this.T.InstancedMesh(new this.T.BoxGeometry(1,1,1),dark,42);for(let i=0;i<42;i++){transform.position.set(14.8+(i%12)*1.04,f+.03,i%2?-.9:-4.5);transform.scale.set(.04+(i%4)*.035,.035,.07+(i%3)*.025);transform.rotation.set(i,.5*i,i*.7);transform.updateMatrix();this.rubble.setMatrixAt(i,transform.matrix);}this.group.add(this.rubble);this.group=shell;
  }
  markPuzzle(x,y,z,width,depth){
   const accent=new this.T.MeshBasicMaterial({color:0x39c85a});const edges=[this.box(width,.014,.02,x,y,z-depth/2,accent),this.box(width,.014,.02,x,y,z+depth/2,accent),this.box(.02,.014,depth,x-width/2,y,z,accent),this.box(.02,.014,depth,x+width/2,y,z,accent)];for(const edge of edges){edge.raycast=()=>{};edge.userData.isPuzzleMarker=true;}

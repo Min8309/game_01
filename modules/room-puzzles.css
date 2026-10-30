@@ -122,3 +122,5 @@ body:has(#red-ending-overlay.full-red) #quest-tracker-banner {
 .mp-final-back {
   overflow-y: auto !important;
 }
+
+.history-brief{line-height:1.8;white-space:pre-line}.history-record-count{font-weight:bold;border-bottom:1px solid #8c7148;padding-bottom:8px}

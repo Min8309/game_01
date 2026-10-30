@@ -122,6 +122,7 @@
 
     // 식자공의 수첩(#notebook-modal) 내부에도 수사 단서 & 활자 8선 구역 삽입
     function injectIntoMainNotebook() {
+      if(window.GyeongHistoryGame){document.getElementById('main-notebook-investigation-ext')?.remove();return;}
       var rightPage = document.querySelector('#notebook-modal .right-page');
       if (!rightPage || document.getElementById('main-notebook-investigation-ext')) return;
 

@@ -40,6 +40,9 @@
   const source=lights.find(l=>l.isPointLight),pool=[];if(source)for(let i=0;i<4;i++){const light=new source.constructor(0xffffff,0,0,2);light.userData.performanceProxy=true;light.castShadow=false;scene.add(light);pool.push(light);}perf.lightPool=pool;
   renderer.render=function(world,camera){
    if(!perf.sceneReady||document.hidden)return;
+   const x=game.camera.position.x;
+   if(game.mobileArchive?.contents)game.mobileArchive.contents.visible=x>=11.8;
+   if(game.mobileDarkroom?.contents)game.mobileDarkroom.contents.visible=x>=26.4;
    const now=performance.now(),dialog=interaction.isInspecting||game.notebookUI.isOpen||!game.startScreen.classList.contains('hidden');
    if(dialog&&dialogRendered&&pendingTier===null)return;if(!dialog)dialogRendered=false;else dialogRendered=true;
    if(pendingTier!==null&&dialog){tier=pendingTier;pendingTier=null;perf.quality=qualities[tier];renderer.setPixelRatio(baseRatio*perf.quality);document.documentElement.classList.toggle('reduced-game-effects',tier<2);qualitySince=now;}
@@ -51,7 +54,16 @@
    const hidden=[];for(const light of lights)if(light.isPointLight&&light.visible){hidden.push(light);light.visible=false;}
    try{perf.renderedFrames++;return render(world,camera);}finally{for(const light of hidden)light.visible=true;}
   };
-  perf.ready=()=>{index();perf.warmPromise=new Promise(resolve=>setTimeout(async()=>{await game.ghostEncounters.readyPromise;index();const hidden=[];for(const light of lights)if(light.isPointLight&&light.visible){hidden.push(light);light.visible=false;}const ghost=game.ghostEncounters,oldMap=ghost.material?.map,oldVisible=ghost.sprite?.visible;const texture=ghost.textures.values().next().value;if(ghost.material&&texture){ghost.material.map=texture;ghost.material.needsUpdate=true;}if(ghost.sprite)ghost.sprite.visible=true;const start=performance.now();try{if(typeof renderer.compileAsync==='function'&&gl.getExtension('KHR_parallel_shader_compile'))await renderer.compileAsync(scene,game.camera);else renderer.compile(scene,game.camera);}catch(error){console.warn('Graphics preparation deferred to first render',error);}finally{for(const light of hidden)light.visible=true;if(ghost.material){ghost.material.map=oldMap;ghost.material.needsUpdate=true;}if(ghost.sprite)ghost.sprite.visible=oldVisible;perf.warmMs=performance.now()-start;perf.sceneReady=true;resolve();}},450));};
+  perf.ready=()=>{index();perf.warmPromise=new Promise(resolve=>setTimeout(async()=>{await game.ghostEncounters.readyPromise;index();const hidden=[];for(const light of lights)if(light.isPointLight&&light.visible){hidden.push(light);light.visible=false;}const ghost=game.ghostEncounters,oldMap=ghost.material?.map,oldVisible=ghost.sprite?.visible;const texture=ghost.textures.values().next().value;if(ghost.material&&texture){ghost.material.map=texture;ghost.material.needsUpdate=true;}if(ghost.sprite)ghost.sprite.visible=true;const start=performance.now();try{if(typeof renderer.compileAsync==='function'&&gl.getExtension('KHR_parallel_shader_compile'))await renderer.compileAsync(scene,game.camera);else renderer.compile(scene,game.camera);
+    // Render tiny views while the menu is preparing: shadow and room-specific
+    // shader variants otherwise appear on the first visit, after compile().
+    const viewport={copy(v){this.x=v.x;this.y=v.y;this.z=v.z;this.w=v.w;return this;}};renderer.getViewport(viewport);
+    const camera=game.camera.clone(),flash=game.lighting.flashlight,flashVisible=flash.visible,ambient=game.mobileArchive.ambient,ambientVisible=ambient.visible;
+    const views=[[[0,1.65,4.2],[0,1,-3]],[[18,-1.95,-2.7],[22,-2.5,-2.7]],[[30,-1.95,-2.7],[32.3,-2.5,-.36]],[[38.3,-1.95,-2.7],[38.3,-2,-5.42]]];
+    try{renderer.setViewport(0,0,48,48);for(let i=0;i<views.length;i++){ambient.visible=i>0;camera.position.set(...views[i][0]);camera.lookAt(...views[i][1]);camera.updateMatrixWorld();for(const on of [false,true]){flash.visible=on;render(scene,camera);}const status=document.querySelector('.session-save');if(status)status.textContent='그래픽 사전 준비 중 · '+(i+1)+' / '+views.length;await new Promise(requestAnimationFrame);}}
+    finally{flash.visible=flashVisible;ambient.visible=ambientVisible;renderer.setViewport(viewport.x,viewport.y,viewport.z,viewport.w);}
+    perf.warmPrograms=renderer.info.programs.length;
+}catch(error){console.warn('Graphics preparation deferred to first render',error);}finally{for(const light of hidden)light.visible=true;if(ghost.material){ghost.material.map=oldMap;ghost.material.needsUpdate=true;}if(ghost.sprite)ghost.sprite.visible=oldVisible;perf.warmMs=performance.now()-start;perf.sceneReady=true;resolve();}},450));};
  }
  window.SikjasilPerformance={attach};
  window.addEventListener('sikjasil-ready',event=>{attach(event.detail);event.detail.performanceControls.ready();});
