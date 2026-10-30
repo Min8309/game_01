@@ -29,7 +29,7 @@ function render(space,index){
   }
   close.textContent='예고 확인 · 게임 종료';
   close.onclick=()=>{state.teaserSeen=true;returnToMain();};
-  panel.classList.add('yk-end-ui');panel.appendChild(close);view.scrollTop=0;
+  panel.classList.add('yk-end-ui');panel.appendChild(close);window.GyeongSession?.renderRewards(panel);view.scrollTop=0;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     card.classList.add('mp-flipped');
     if(!space.endingAudioStarted){
@@ -37,7 +37,7 @@ function render(space,index){
       game.historyGame?.audio.play('ending',window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:.6);
     }
     // 사진 확인 5초 후 자동 복귀
-    setTimeout(()=>{if(!document.hidden)returnToMain();},5000);
+    if(!window.GyeongSession)setTimeout(()=>{if(!document.hidden)returnToMain();},5000);
   }));
   return;
  }

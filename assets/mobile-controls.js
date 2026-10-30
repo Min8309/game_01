@@ -220,7 +220,7 @@
     window.addEventListener('blur', function () { reset(); controls.unlock(); });
     document.addEventListener('visibilitychange', function () { if (document.hidden) { reset(); controls.unlock(); } });
     window.addEventListener('resize', reset);
-    game.renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
+    if(!game.performanceControls)game.renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
     document.querySelector('.start-btn-pulse').textContent = '화면을 터치하여 진입';
     document.querySelector('.controls-guide-box').textContent = '왼쪽 조이스틱: 이동 · 화면 드래그: 시선 · 오른쪽 버튼: 픽업 / 조사 · 가로 화면 권장';
     sync();

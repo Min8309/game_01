@@ -195,7 +195,7 @@ game.scene.traverse(object=>{const data=object.userData,q=QUESTIONS.find(q=>q.id
  const nativeUpdateTarget=game.explorationHUD.updateTarget.bind(game.explorationHUD);game.explorationHUD.updateTarget=()=>{game.explorationHUD.targetId=null;nativeUpdateTarget();};
  const notebookRender=game.notebookUI.render.bind(game.notebookUI);game.notebookUI.render=()=>{notebookRender();const right=document.querySelector('.notebook-page.right-page');if(!right)return;right.querySelectorAll('.puzzle-track-card,.notebook-status-summary,#notebook-puzzles-empty').forEach(e=>e.hidden=true);right.querySelector('.page-title').textContent='복원 기록 (HISTORY)';const clues=document.getElementById('notebook-clues-list');clues.replaceChildren();for(const q of QUESTIONS.filter(q=>state.attempts.has(q.id))){node('h4',q.place,clues);node('p',q.clue,clues);}if(!state.attempts.size)node('p','물건을 조사하면 단서가 문제 안에 나타납니다. 한 번 시도한 기록은 여기에 모입니다.',clues);let records=document.getElementById('history-notebook');if(!records){records=node('section','',right);records.id='history-notebook';}records.replaceChildren();for(const room of Object.keys(ROOMS)){node('h4',ROOMS[room],records);for(const q of QUESTIONS.filter(q=>q.room===room)){
     const solved=state.solved.has(q.id);
-    const hintText=!solved&&q.hints?` — ${q.hints[0]}`:'';
+    const hintText=!solved&&q.hints&&window.GyeongSession?.mode!=='challenge'?` — ${q.hints[0]}`:'';
     node('p',`${solved?'✓':'未'} ${q.place} (${q.title}) · 난이도 ${q.level}${hintText}`,records);
   }}node('h4','1층 사건 조사실',records);node('p',`${exitRoom.mapPuzzle.solved?'✓':'未'} 붉은 실의 사건 지도 · ${exitRoom.keyPlaced?'현장 네 곳을 시간순으로 연결':'열쇠를 지도 잠금장치에 삽입'}`,records);};
  game.notebookUI.render();
