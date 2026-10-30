@@ -1,0 +1,9 @@
+/* Shared PC/mobile spaces; each platform keeps its native input controls. */
+(function(){
+'use strict';
+window.addEventListener('sikjasil-ready',function(event){const game=event.detail;if(game.mobileArchive)return;game.mobileArchive=new GyeongArchiveSpace.ArchiveSpace(game,game.sceneAPI);game.mobileDarkroom=new GyeongDarkroomSpace.DarkroomSpace(game,game.sceneAPI,game.mobileArchive);game.ghostEncounters.resolvePlace=place=>SikjasilGhosts.resolveExpandedPlace(game.camera.position,game.camera.getWorldDirection(new game.sceneAPI.Vector3()),game.ghostEncounters.random,place);game.tensionDirector=new GyeongTension.TensionDirector(game);
+if(game.ghostEncounters){game.ghostEncounters.renderer=game.renderer;game.ghostEncounters.warmup?.(game.renderer,game.scene,game.camera);game.ghostEncounters.readyPromise?.then(()=>game.ghostEncounters.warmup?.(game.renderer,game.scene,game.camera));}
+if(game.renderer?.compile&&game.scene&&game.camera){try{game.renderer.compile(game.scene,game.camera);}catch(e){}}
+if(window.GyeongMissingPerson?.PHOTO_URLS){window.GyeongMissingPerson.PHOTO_URLS.forEach(url=>{const img=new Image();img.src=url;if(img.decode)img.decode().catch(()=>{});});}
+game.ghostEncounters.isAllowed=()=>game.playerControls.controls.isLocked&&!game.interactionManager.isInspecting&&!game.notebookUI.isOpen&&!game.gameEnded&&!game.ending&&game.startScreen.classList.contains('hidden')&&!document.getElementById('reward-card-modal')?.classList.contains('active')&&!document.querySelector('.gp-room-effect')&&!game.isDoorTransitioning&&performance.now()>=(game.ghostEncounters.suppressUntil||0);game.playerControls.controls.addEventListener('unlock',()=>{if(game.ghostEncounters.active)game.ghostEncounters.lastEncounter=performance.now();game.ghostEncounters.hide();});window.addEventListener('space-inspect',()=>game.ghostEncounters.hide());});
+})();

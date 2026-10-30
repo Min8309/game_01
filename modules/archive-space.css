@@ -1,0 +1,7 @@
+#archive-route-notice{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:16;max-width:60vw;padding:8px 14px;background:#0a0f0de0;border:1px solid #7c6a48;color:#d5c3a0;font:12px serif;text-align:center;pointer-events:none}
+#archive-route-notice[hidden]{display:none}
+.mobile-archive-zone #exploration-objective,.mobile-archive-zone #clue-direction{display:none}
+.mobile-archive-zone .location-title{font-size:12px}
+@media(max-width:500px){#archive-route-notice{top:85px;max-width:90vw;width:90vw}}
+.mobile-redroom-zone #archive-route-notice{border-color:#a63e31;color:#ecc0aa;background:#1b0708e6}
+.mobile-darkroom-zone #exploration-objective,.mobile-darkroom-zone #clue-direction{display:none}

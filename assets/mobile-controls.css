@@ -1,0 +1,62 @@
+#mobile-controls { display: none; }
+.touch-game #mobile-controls:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 40; pointer-events: none; }
+#mobile-pad { position: absolute; left: max(22px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom)); width: 132px; height: 132px; border-radius: 50%; border: 1px solid #e4d7bf55; background: #b6ad9824; pointer-events: auto; touch-action: none; user-select: none; color: #e4d7bf; display: grid; place-items: center; }
+#mobile-pad .joystick-ring { position: absolute; inset: 17px; border: 1px solid #e4d7bf33; border-radius: 50%; }
+#mobile-pad i { position: absolute; width: 54px; height: 54px; border-radius: 50%; background: #aaa594b3; border: 1px solid #f0e5cf66; box-shadow: 0 3px 12px #0005, inset 0 1px 3px #fff3; }
+#mobile-pad.active { border-color: #e4d7bfaa; background: #b6ad9833; }
+#mobile-pad.active i { background: #d3c4a7cc; }
+.joystick-label { position: absolute; bottom: 6px; font-size: 10px; letter-spacing: .12em; pointer-events: none; }
+.mobile-actions { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); display: flex; align-items: flex-end; gap: 10px; pointer-events: auto; }
+.mobile-actions button { min-height: 44px; padding: 8px; color: #eee0bf; background: #18150fbf; border: 1px solid #b69b6977; border-radius: 50%; touch-action: manipulation; font-size: 11px; }
+.mobile-actions button:active { background: #806747dd; }
+.mobile-actions .mobile-pickup { width: 94px; height: 94px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 2px solid #d4b47c; background: #5a4427b3; }
+.mobile-pickup > span { font-size: 26px; line-height: 1; }
+.mobile-pickup b { font-size: 12px; }
+.mobile-pickup small { max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+.mobile-actions .mobile-pickup:disabled { opacity: .55; border-color: #c7bba166; background: #38332999; }
+.mobile-tools { display: grid; grid-template-columns: repeat(2, 48px); gap: 6px; }
+.mobile-tools button { width: 48px; height: 48px; padding: 2px; }
+@media (max-width: 480px) {
+  .mobile-actions { flex-direction: column; align-items: flex-end; gap: 8px; }
+  .mobile-tools { grid-template-columns: repeat(3, 44px); }
+  .mobile-tools button { width: 44px; height: 44px; }
+  .mobile-actions .mobile-pickup { width: 86px; height: 86px; }
+}
+.touch-game .controls-hint { display: none; }
+.touch-game #start-screen { padding: 16px; box-sizing: border-box; overflow-y: auto; }
+.touch-game .main-title { font-size: clamp(24px, 5vw, 46px); }
+.touch-game .intro-desc { font-size: 13px; line-height: 1.6; }
+.touch-game .inspect-card, .touch-game .notebook-book { box-sizing: border-box; max-width: calc(100vw - 20px); max-height: calc(100dvh - 20px); overflow: auto; }
+.touch-game .notebook-pages { grid-template-columns: 1fr; min-height: 0; max-height: none; }
+.touch-game .notebook-page { min-width: 0; flex: 1 1 240px; }
+.touch-game #inspect-interactive-view { min-width: 0; overflow: auto; }
+.touch-game .inspect-action-bar { flex-wrap: wrap; }
+.touch-game button { min-height: 44px; }
+@media (pointer: coarse) and (max-height: 500px) {
+  .touch-game .intro-desc { font-size: 11px; line-height: 1.35; margin: 8px 0; }
+  .touch-game .controls-guide-box { font-size: 11px; padding: 6px; }
+  #mobile-pad { width: 104px; height: 104px; bottom: 16px; }
+}
+
+.touch-game .start-content { padding: 16px; max-width: 100%; }
+.touch-game .inspect-card { padding: 16px; }
+.touch-game #scrub-canvas, .touch-game #pendulum-interactive-frame { touch-action: none; }
+.touch-game .notebook-book { display: block; }
+.touch-game .notebook-pages { margin: 12px 0; }
+.touch-game .notebook-footer { position: sticky; bottom: 0; background: #1c140c; padding-top: 8px; z-index: 1; }
+/* Keep the canvas from widening the mobile layout viewport during rotation. */
+.touch-game #canvas-container canvas { display: block; width: 100% !important; height: 100% !important; }
+.touch-game .card-frame { max-width: 100%; }
+.touch-game #card-canvas { max-width: 100%; height: auto; }
+/* An explicit display rule otherwise overrides the hidden attribute at the ending. */
+.touch-game #play-timer[hidden] { display: none; }
+/* Mobile exploration keeps the scene clear; instructions are opened on demand. */
+.touch-game .hud-top,.touch-game .hud-bottom,.touch-game #exploration-objective,.touch-game #clue-direction,.touch-game #interaction-prompt,.touch-game #inventory-bar,.touch-game #archive-route-notice{display:none!important}
+.touch-game #play-timer{top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));padding:6px 10px;min-width:68px}
+.touch-game #play-timer strong{font-size:22px}.touch-game #play-timer span{font-size:10px}
+#mobile-guide-button{position:absolute;left:max(12px,env(safe-area-inset-left));bottom:180px;pointer-events:auto;min-height:44px;padding:8px 12px;border:1px solid #39c85a;border-radius:6px;background:#10291bd9;color:#c9f2d5;font-size:12px;touch-action:manipulation}
+#mobile-play-guide{box-sizing:border-box;width:min(440px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow-y:auto;padding:20px;background:#0d2019;color:#d7eddf;border:1px solid #39c85a;border-radius:8px;font-size:14px;line-height:1.65}
+#mobile-play-guide::backdrop{background:#000a}#mobile-play-guide h2,#mobile-play-guide h3{color:#91ecaa}#mobile-play-guide button{min-height:48px;width:100%;background:#143322;border:1px solid #39c85a;color:#ddf7e5;padding:8px;border-radius:4px}
+@media(max-height:450px){#mobile-guide-button{bottom:132px}#mobile-play-guide{padding:12px;font-size:13px}}
+
+#mobile-nearby-clues{width:min(400px,calc(100vw - 24px));box-sizing:border-box;max-height:calc(100dvh - 24px);overflow:auto;background:#0d2019;color:#c9f2d5;border:1px solid #39c85a;border-radius:8px;padding:16px}#mobile-nearby-clues::backdrop{background:#000a}#mobile-nearby-clues h2{font-size:18px}#mobile-nearby-clues button{display:block;width:100%;min-height:48px;margin:8px 0;padding:10px;border:1px solid #39c85a;background:#143322;color:#ddf7e5;touch-action:manipulation}

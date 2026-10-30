@@ -1,0 +1,175 @@
+@font-face {
+  font-family: 'Yeon Sung';
+  src: url('./fonts/YeonSung-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --game-font-original: "Nanum Myeongjo", "Noto Serif KR", serif;
+  --game-font-yeonsung: 'Yeon Sung', var(--game-font-original);
+}
+
+/* ========================================================
+   1. 기본 및 HTML 화면 글씨 전체에 'Yeon Sung' 적용
+   ======================================================== */
+html, body {
+  font-family: var(--game-font-yeonsung);
+}
+
+/* 시작 화면 */
+#start-screen,
+.start-content,
+.main-title,
+.sub-title,
+.intro-desc,
+.start-btn-pulse,
+.controls-guide-box {
+  font-family: var(--game-font-yeonsung);
+}
+
+/* 방 이름 & 장소 배지 */
+.location-badge,
+.location-title,
+.location-time {
+  font-family: var(--game-font-yeonsung);
+}
+
+/* 목표 패널 & 퀘스트 안내 */
+#quest-tracker-banner,
+#quest-tracker-banner *,
+#exploration-objective,
+#exploration-objective *,
+.qt-badge,
+.qt-text,
+.qt-dist,
+#waypoint-screen-marker {
+  font-family: var(--game-font-yeonsung) !important;
+}
+
+/* 상단 HUD 상태바 */
+.hud-status-bar,
+.status-tag,
+#play-timer,
+#play-timer * {
+  font-family: var(--game-font-yeonsung);
+}
+
+/* 소지품 가방 */
+#inventory-bar,
+.inventory-title,
+#inventory-items,
+.inventory-item,
+.empty-inv-text {
+  font-family: var(--game-font-yeonsung);
+}
+
+/* 조작 안내 */
+.hud-bottom,
+.controls-hint,
+.controls-hint div,
+.key-tag {
+  font-family: var(--game-font-yeonsung);
+}
+
+/* '[클릭] 조사하기' 프롬프트 & 단서 안내 */
+#interaction-prompt,
+#prompt-text,
+#history-clue-label,
+#clue-direction {
+  font-family: var(--game-font-yeonsung) !important;
+}
+
+/* 조사 모달 헤더, 설명, 푸터 */
+#inspect-modal .inspect-header,
+#inspect-modal #inspect-title,
+#inspect-modal #inspect-tag,
+#inspect-modal #inspect-desc,
+#inspect-modal .inspect-footer,
+#inspect-modal #inspect-close {
+  font-family: var(--game-font-yeonsung);
+}
+
+/* 식자공의 수첩 */
+#notebook-modal,
+.notebook-book,
+.notebook-cover-title,
+.notebook-page,
+.page-title,
+.notebook-clues-list,
+.notebook-clues-list *,
+#history-notebook,
+#history-notebook *,
+.notebook-status-summary,
+#notebook-close-btn {
+  font-family: var(--game-font-yeonsung) !important;
+}
+
+/* 귀신 / 경고 / 엔딩 화면 */
+#screaming-ending-caption,
+#screaming-ending-caption *,
+#surgical-ending-caption,
+#surgical-ending-caption *,
+.death-paper-card,
+.death-paper-card * {
+  font-family: var(--game-font-yeonsung) !important;
+}
+
+/* 보상 카드 모달 UI */
+#reward-card-modal,
+.reward-content,
+.card-actions,
+.card-actions button {
+  font-family: var(--game-font-yeonsung);
+}
+
+/* 모바일 컨트롤 & 플레이 안내 */
+#mobile-controls,
+#mobile-controls button,
+#mobile-pad,
+.joystick-label,
+.mobile-pickup,
+.mobile-tools,
+#mobile-play-guide,
+#mobile-play-guide *,
+#mobile-guide-button,
+#mobile-nearby-clues,
+#mobile-nearby-clues * {
+  font-family: var(--game-font-yeonsung) !important;
+}
+
+/* ========================================================
+   2. 문제 및 퍼즐 창은 원래 글꼴(var(--game-font-original)) 유지
+   ======================================================== */
+/* 역사 퀴즈 모달 (문제 본문, 보기, 해설, 힌트 등) */
+#history-game-modal,
+#history-game-modal *,
+.history-quiz-card,
+.history-quiz-card *,
+.hq-question,
+.hq-choices,
+.hq-choice,
+.hq-explanation,
+.hq-hint {
+  font-family: var(--game-font-original) !important;
+}
+
+/* 답을 고르거나 입력하는 퍼즐 인터랙티브 뷰 */
+#inspect-interactive-view,
+#inspect-interactive-view *,
+.gm-expansion,
+.gm-expansion *,
+.mp-puzzle,
+.mp-puzzle *,
+.room-puzzle-view,
+.room-puzzle-view *,
+.evidence-paper,
+.evidence-paper * {
+  font-family: var(--game-font-original) !important;
+}
+
+/* 숫자 입력창, 텍스트 입력창, 라디오/체크박스 */
+input, textarea, select {
+  font-family: var(--game-font-original) !important;
+}

@@ -1,0 +1,215 @@
+/* =========================================================
+   경성야록 식자실 — 리마스터 귀신 연출 (모션 프레임 & 심령 공포)
+   종이 인형을 흔드는 듯한 부자연스러운 인위적 회전을 제거하고,
+   귀신 자체의 프레임 모션(입 찢어짐, 고개 들림)이 돋보이도록 개선
+   ========================================================= */
+
+#ghost-apparition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+  contain: layout paint;
+}
+
+#ghost-apparition-overlay.active {
+  visibility: visible;
+}
+
+/* 1. 화면 전체 핏빛/암흑 비네트 */
+.ghost-veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(140, 10, 10, 0.32) 0%, rgba(5, 2, 2, 0.96) 80%);
+  opacity: 0;
+}
+
+#ghost-apparition-overlay.active .ghost-veil {
+  animation: ghost-veil-pulse 2.4s ease-out both;
+}
+
+@keyframes ghost-veil-pulse {
+  0% { opacity: 0; }
+  10% { opacity: 0.95; }
+  35% { opacity: 0.6; }
+  75% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+/* 2. 귀신 본체 — 스프라이트 시트 단일 이미지 & CSS 백그라운드 프레임 이동 */
+.ghost-figure {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: min(85vh, 760px);
+  aspect-ratio: 2 / 3;
+  width: auto;
+  max-width: 85vw;
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  background-position: 0% 0%;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  filter: contrast(1.3) brightness(0.92) drop-shadow(0 0 35px rgba(180, 15, 15, 0.8));
+  pointer-events: none;
+}
+
+/* 귀신 등장 시 3D 카메라 화면 지진 흔들림 */
+body.ghost-shock #canvas-container {
+  animation: camera-impact 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes camera-impact {
+  10%, 90% { transform: translate3d(-3px, 2px, 0); }
+  20%, 80% { transform: translate3d(4px, -3px, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 3px, 0); }
+  40%, 60% { transform: translate3d(4px, -2px, 0); }
+  100% { transform: none; }
+}
+
+/* 기본 심령 등장: 자연스러운 심령 접근 및 섬뜩한 다가옴 */
+#ghost-apparition-overlay.active .ghost-figure {
+  animation: ghost-jumpscare-appear 1.2s cubic-bezier(0.1, 0.9, 0.2, 1) both;
+}
+
+@keyframes ghost-jumpscare-appear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+    filter: contrast(1.4) drop-shadow(0 0 30px #8a1c14);
+  }
+  8% { /* 0.1초 */
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+    filter: contrast(1.35) drop-shadow(0 0 50px #ff2222);
+  }
+  62% { /* 0.75초 머뭄 */
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+    filter: contrast(1.3) drop-shadow(0 0 40px #cc1818);
+  }
+  83% { /* 1.0초 */
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.22);
+    filter: contrast(1.4) blur(2px);
+  }
+  100% { /* 1.2초 페이드아웃 */
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.3);
+    filter: blur(8px) brightness(0.2);
+  }
+}
+
+/* 천장에서 내려올 때 */
+#ghost-apparition-overlay.active[data-action="drop"] .ghost-figure {
+  animation: ghost-drop-haunt 2.4s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+@keyframes ghost-drop-haunt {
+  0% { opacity: 0; transform: translate(-50%, -100%) scale(0.75); }
+  20% { opacity: 1; transform: translate(-50%, -40%) scale(1.05); }
+  60% { opacity: 1; transform: translate(-50%, -30%) scale(1.25); }
+  85% { opacity: 0.6; transform: translate(-50%, 10%) scale(1.5); }
+  100% { opacity: 0; transform: translate(-50%, 40%) scale(1.8); }
+}
+
+/* 바닥에서 솟구쳐 오를 때 */
+#ghost-apparition-overlay.active[data-action="rise"] .ghost-figure {
+  animation: ghost-rise-haunt 2.4s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+@keyframes ghost-rise-haunt {
+  0% { opacity: 0; transform: translate(-50%, 50%) scale(0.65); }
+  20% { opacity: 1; transform: translate(-50%, -45%) scale(1.05); }
+  65% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(1.8); filter: blur(10px); }
+}
+
+/* 코앞 돌진(Rush) 덮침 */
+#ghost-apparition-overlay.active[data-action="rush"] .ghost-figure {
+  animation: ghost-rush-jumpscare 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes ghost-rush-jumpscare {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  12% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  72% { opacity: 1; transform: translate(-50%, -50%) scale(1.6); filter: contrast(1.6) drop-shadow(0 0 50px #f00); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.0); filter: blur(14px); }
+}
+
+/* 구석 잠복(Corner) */
+#ghost-apparition-overlay.active[data-action="corner"] .ghost-figure {
+  animation: ghost-corner-peer 2.4s ease-in-out both;
+}
+@keyframes ghost-corner-peer {
+  0% { opacity: 0; transform: translate(-65%, -50%) scale(0.7); }
+  25% { opacity: 1; transform: translate(-52%, -50%) scale(1.0); }
+  65% { opacity: 1; transform: translate(-48%, -50%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-42%, -50%) scale(1.5); }
+}
+
+/* 물러남(Retreat) */
+#ghost-apparition-overlay.active[data-action="retreat"] .ghost-figure {
+  animation: ghost-retreat-sink 2.4s ease-out both;
+}
+@keyframes ghost-retreat-sink {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(1.25); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  70% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.85); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); filter: blur(10px); }
+}
+
+/* 횡이동(Sweep) */
+#ghost-apparition-overlay.active[data-action="sweep"] .ghost-figure {
+  animation: ghost-sweep-drift 2.4s ease-in-out both;
+}
+@keyframes ghost-sweep-drift {
+  0% { opacity: 0; transform: translate(-90%, -50%) scale(0.8); }
+  25% { opacity: 1; transform: translate(-55%, -50%) scale(1.05); }
+  65% { opacity: 1; transform: translate(-45%, -50%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-10%, -50%) scale(1.4); }
+}
+
+/* ── 나오는 순간 화면 짧은 흔들림(0.3초) 및 붉은 빛 번쩍임 ── */
+body.ghost-impact-flash #canvas-container {
+  animation: ghost-shake-impact 0.3s ease-in-out both;
+}
+body.ghost-impact-flash::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(138, 28, 20, 0.45);
+  mix-blend-mode: hard-light;
+  pointer-events: none;
+  z-index: 96;
+  animation: ghost-red-flash 0.3s ease-out both;
+}
+@keyframes ghost-shake-impact {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  15% { transform: translate3d(-8px, 6px, 0); }
+  30% { transform: translate3d(8px, -6px, 0); }
+  45% { transform: translate3d(-6px, -4px, 0); }
+  60% { transform: translate3d(6px, 4px, 0); }
+  75% { transform: translate3d(-3px, 2px, 0); }
+  90% { transform: translate3d(2px, -1px, 0); }
+}
+@keyframes ghost-red-flash {
+  0% { opacity: 0; }
+  25% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* 움직임 줄이기(prefers-reduced-motion) 대응: 흔들림·번쩍임 끄기 */
+@media (prefers-reduced-motion: reduce) {
+  body.ghost-impact-flash #canvas-container,
+  body.ghost-shock #canvas-container {
+    animation: none !important;
+  }
+  body.ghost-impact-flash::after {
+    display: none !important;
+  }
+  #ghost-apparition-overlay.active .ghost-figure {
+    transform: translate(-50%, -50%) scale(1) !important;
+    animation-duration: 0.85s !important;
+  }
+}
