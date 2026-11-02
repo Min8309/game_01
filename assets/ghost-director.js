@@ -13,8 +13,9 @@
     roomScale: 2.4,              // 방 안 3D 스프라이트 크기 배율 (기존 1.5 -> 2.4, 약 1.6배)
     spawnDistance: 2.5,          // 플레이어 시야 전방 출현 거리 (2~3m)
     screenMaxScale: 1.15,        // 화면 덮치는 귀신 최대 크기 배율
-    fadeInSeconds: 0.1,          // 화면 귀신이 선명해지는 시간 (0.1초)
-    staySeconds: 0.75,           // 화면에 선명하게 머무는 시간 (0.6~0.9초)
+    fadeInSeconds: 0.06,          // 화면 귀신이 선명해지는 시간 (0.06초)
+    staySeconds: 0.6,           // 등장 시작 후 선명하게 유지되는 시점 (0.6초)
+    arrivalSeconds: 0.5,          // 작은 이미지가 중앙에 도착하기까지 0.5초
     totalDuration: 1.2,          // 화면 연출 전체 지속 시간 (초)
     screenShakeIntensity: 8,     // 화면 흔들림 강도 (px)
     shakeDuration: 0.3,          // 화면 흔들림 지속 시간 (초)
@@ -39,6 +40,7 @@
     { id: 'wall', name: '벽', point: [4.2, 2.1, -1.8], offset: [.8, 0, 0] },
     { id: 'corridor', name: '복도', point: [0, 1.9, -8.5], offset: [0, 0, -1.8] },
     { id: 'drawer', name: '서랍', point: [.9, 1.1, 1.8], offset: [0, -.8, -.2] },
+    { id: 'underdesk', name: '책상 아래', point: [.8, .45, 1.6], offset: [0, -.65, 0] },
     { id: 'door', name: '철문 뒤', point: [0, 1.8, -16.2], offset: [0, 0, -1.4] }
   ];
 
@@ -84,25 +86,50 @@
     var floor = zone === 'stairs' ? -Math.max(0, Math.min(20, Math.floor((position.x - 5.8) / .32) + 1)) * .18 : -3.6;
     var clamp = (value, min, max) => Math.max(min + .35, Math.min(max - .35, value));
     var x = clamp(position.x + forward.x * 2.2, bounds[0], bounds[1]), z = clamp(position.z + forward.z * 2.2, bounds[2], bounds[3]);
-    var kind = fallback?.action === 'drop' ? 'ceiling' : fallback?.action === 'rise' ? 'floor' : fallback?.action ? ['wall', 'corner'][Math.min(1, Math.floor(random() * 2))] : ['ceiling', 'floor', 'wall', 'corner'][Math.min(3, Math.floor(random() * 4))];
+    var kind = fallback?.id && PLACES.some(p=>p.id===fallback.id) ? fallback.id : fallback?.action === 'drop' ? 'ceiling' : fallback?.action === 'rise' ? 'floor' : fallback?.action ? ['wall', 'corner'][Math.min(1, Math.floor(random() * 2))] : ['ceiling', 'floor', 'wall', 'corner'][Math.min(3, Math.floor(random() * 4))];
     var y = floor + 1.5, offset = [0, 0, 0];
     if (kind === 'ceiling') { y = floor + bounds[4] - 1.05; offset = [0, .8, 0]; }
     if (kind === 'floor') { y = floor + .65; offset = [0, -.9, 0]; }
     if (kind === 'wall') { z = forward.z > 0 ? bounds[3] - .25 : bounds[2] + .25; offset = [0, 0, forward.z > 0 ? .6 : -.6]; }
     if (kind === 'corner') { x = forward.x > 0 ? bounds[1] - .4 : bounds[0] + .4; z = forward.z > 0 ? bounds[3] - .4 : bounds[2] + .4; offset = [forward.x > 0 ? .5 : -.5, 0, 0]; }
-    var names = { ceiling: '천장', floor: '바닥', wall: '벽', corner: '코너' };
+    if(kind==='underdesk'){const desk=zone==='archive'?[22,-2.7]:zone==='darkroom'?[32.3,-.36]:zone==='photos'?[40.5,-.4]:[x,z];x=desk[0];z=desk[1];y=floor+.45;offset=[0,-.5,0];}
+    if(kind==='drawer'){y=floor+.9;offset=[0,-.6,0];}
+    var names = { corridor:'복도',underdesk:'책상 아래',drawer:'서랍',cabinet:'캐비닛 뒤',door:'문 뒤',ceiling: '천장', floor: '바닥', wall: '벽', corner: '코너' };
     return { id: kind, name: names[kind], zone: zone, point: [x, y, z], offset: offset };
   }
 
   function fadeOpacity(seconds) {
-    if (seconds < 0 || seconds >= 2.4) return 0;
-    if (seconds <= GHOST_CONFIG.fadeInSeconds) {
-      return seconds / GHOST_CONFIG.fadeInSeconds;
+    if (seconds < 0 || seconds >= GHOST_CONFIG.totalDuration) return 0;
+    if (seconds < GHOST_CONFIG.fadeInSeconds) return seconds / GHOST_CONFIG.fadeInSeconds;
+    if (seconds <= GHOST_CONFIG.staySeconds) return 1;
+    return (GHOST_CONFIG.totalDuration - seconds) / (GHOST_CONFIG.totalDuration - GHOST_CONFIG.staySeconds);
+  }
+
+  // Shuffle bags stay bounded even in an hours-long, unlimited session.
+  class EndlessSchedule {
+    constructor(random) { this.random=random||Math.random;this.ghosts=[];this.places=[];this.lastGhost=null;this.lastPlace=null;this.nextAt=null;this.count=0; }
+    draw(pool,key,last) {
+      if(!this[key].length){this[key]=shuffled(pool,this.random);if(this[key][0].id===last&&this[key].length>1){const x=this[key][0];this[key][0]=this[key][1];this[key][1]=x;}}
+      return this[key].shift();
     }
-    if (seconds <= GHOST_CONFIG.staySeconds) {
-      return 1.0;
+    gap(progress) { const p=Math.max(0,Math.min(1,progress||0));return (12-3*p+this.random()*(12-2*p))*1000; }
+    arm(now,progress) { if(this.nextAt===null)this.nextAt=now+(this.count?this.gap(progress):(8+this.random()*6)*1000); }
+    pause() { this.nextAt=null; }
+    accelerate(now) { if(this.nextAt!==null)this.nextAt=Math.min(this.nextAt,now+3500+this.random()*2000); }
+    due(now) { return this.nextAt!==null&&now>=this.nextAt; }
+    encounter(elapsed) {
+      const ghost=this.draw(GHOSTS,'ghosts',this.lastGhost),place=this.draw(PLACES,'places',this.lastPlace);
+      this.lastGhost=ghost.id;this.lastPlace=place.id;this.count++;
+      const action=place.id==='ceiling'?'drop':['floor','underdesk','drawer'].includes(place.id)?'rise':['wall','cabinet','corner'].includes(place.id)?'sweep':'rush';
+      return {at:elapsed,ghost,place,action,seen:false};
     }
-    return Math.max(0, (2.4 - seconds) / (2.4 - GHOST_CONFIG.staySeconds));
+    reschedule(now,progress) { this.nextAt=now+this.gap(progress); }
+  }
+
+  function screenOrigin(place,random) {
+    random=random||Math.random;const side=random()<.5?-1:1;
+    const origins={ceiling:[0,-.48],floor:[0,.48],underdesk:[side*.2,.43],corridor:[side*.08,-.03],door:[side*.12,0],drawer:[side*.25,.35],wall:[side*.48,0],cabinet:[side*.46,.18],corner:[side*.46,-.32]};
+    return origins[place.id]||[side*.45,0];
   }
 
   class Director {
@@ -252,7 +279,7 @@
       var tex = this.textures.get(encounter.ghost.id);
       if (tex) {
         this.material.map = tex;
-        this.material.needsUpdate = true;
+        if(!this._hadGhostMap){this.material.needsUpdate=true;this._hadGhostMap=true;}
       }
       this.material.opacity = 0;
       this.sprite.visible = false;
@@ -281,6 +308,10 @@
       this.currentFrameIdx = 0;
 
       if (this.layer && this.layer.dataset) {
+        const origin=screenOrigin(place,this.random||Math.random);
+        this.layer.style.setProperty('--ghost-x',(origin[0]*100)+'vw');
+        this.layer.style.setProperty('--ghost-y',(origin[1]*100)+'vh');
+        this.layer.style.setProperty('--ghost-duration',GHOST_CONFIG.totalDuration+'s');
         this.layer.dataset.location = place.id;
         this.layer.dataset.zone = place.zone || 'main';
         this.layer.dataset.ghost = encounter.ghost.id;
@@ -293,11 +324,12 @@
       var reducedMotion = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (!reducedMotion && typeof document !== 'undefined' && document.body) {
         document.body.classList.add('ghost-shock', 'ghost-impact-flash');
-        setTimeout(function () {
+        clearTimeout(this.shockTimer);
+        this.shockTimer=setTimeout(function () {
           document.body.classList.remove('ghost-shock', 'ghost-impact-flash');
         }, GHOST_CONFIG.shakeDuration * 1000);
       }
-      this.lighting?.triggerFlicker?.();
+      if(!reducedMotion)this.lighting?.triggerFlicker?.();
       this.popupSound?.play?.(GHOST_CONFIG.totalDuration);
       this.lastGhostId = encounter.ghost.id;
 
@@ -319,8 +351,9 @@
     }
 
     hide() {
+      clearTimeout(this.shockTimer);
       this.popupSound?.stop?.();
-      if (typeof document !== 'undefined' && document.body) document.body.classList.remove('ghost-shock');
+      if (typeof document !== 'undefined' && document.body) document.body.classList.remove('ghost-shock','ghost-impact-flash');
       if (this.sprite) this.sprite.visible = false;
       if (this.material) this.material.opacity = 0;
       if (this.layer && this.layer.classList) this.layer.classList.remove('active');
@@ -364,16 +397,16 @@
       }
       if (this.active) {
         var seconds = (now - this.active.startedAt) / 1000;
-        if (seconds >= 2.4) {
+        if (seconds >= GHOST_CONFIG.totalDuration) {
           this.hide();
           this.lastEncounter = now;
           return;
         }
 
-        // 2.0초 동안 8단계 연속 프레임 애니메이션 (0ms 오버헤드 background-position / UV offset 이동)
+        // Sprite frames share the same duration as the CSS approach and fade.
         var ghost = this.active.encounter.ghost;
         var totalFrames = ghost.frames || 8;
-        var targetFrame = Math.min(totalFrames - 1, Math.floor((seconds / 2.0) * totalFrames));
+        var targetFrame = Math.min(totalFrames - 1, Math.floor((seconds / GHOST_CONFIG.totalDuration) * totalFrames));
         if (this.currentFrameIdx !== targetFrame) {
           this.currentFrameIdx = targetFrame;
           this.applyFrame(ghost, targetFrame);
@@ -449,6 +482,9 @@
     PLACES: PLACES,
     resolveExpandedPlace: resolveExpandedPlace,
     fadeOpacity: fadeOpacity,
+    EndlessSchedule: EndlessSchedule,
+    screenOrigin: screenOrigin,
+    CONFIG: GHOST_CONFIG,
     ACTIONS: ACTIONS
   };
 });

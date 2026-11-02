@@ -62,8 +62,8 @@
     cursed_key: [-4.28, 1.25, 2.0],
     exit_note: [0, 1.62, -22.29],
     archive_entrance: [4.94, 1.4, -2.7],
-    archive_records: [22.0, -2.57, -2.7],
-    archive_language: [18.7, -1.8, -5.16],
+    archive_records: [20.315, -2.11, -5.68],
+    archive_language: [17.815, -2.11, -5.68],
     darkroom_door: [28.0, -2.2, -2.7],
     darkroom_photo: [32.3, -2.57, -0.36],
     photo_curtain: [35.0, -2.2, -2.7],
@@ -82,6 +82,7 @@
     // 히스토리 모드 상태 확인
     var hg = gameInstance.historyGame;
     if(!vProj){vProj=gameInstance.camera.position.clone();forwardVec=vProj.clone();toTargetVec=vProj.clone();}
+    gameInstance.mobileArchive?.paperClues?.forEach(function(clue){clue.object.getWorldPosition(vProj);CLUE_COORDS[clue.id==='archive-source'?'archive_records':'archive_language']=[vProj.x,vProj.y,vProj.z];});
     gameInstance.mobileDarkroom?.missingPhotos?.forEach(function(photo,index){photo.getWorldPosition(vProj);CLUE_COORDS['photo_'+index]=[vProj.x,vProj.y,vProj.z];});
     var state = hg ? hg.state : null;
     var solvedSet = state ? state.solved : null;
@@ -118,7 +119,7 @@
         } else if (!hasItem('rusty_key') && !hasItem('hair_entangled_key') && !keyPlaced) {
           target = { name: '선반의 [머리카락 엉킨 열쇠] 획득', pos: CLUE_COORDS.cursed_key, room: '1층 식자실' };
         } else if (!keyPlaced) {
-          target = { name: '출구방 [사건 지도에 열쇠 삽입]', pos: CLUE_COORDS.exit_note, room: '1층 출구 방' };
+          target = { name: '미제사건 조사실 [사건 지도에 열쇠 삽입]', pos: CLUE_COORDS.exit_note, room: '1층 미제사건 조사실' };
         } else if (!exitRoom.mapPuzzle.solved) {
           target = { name: '사건 지도의 현장 네 곳 연결', pos: CLUE_COORDS.exit_note, room: '1층 사건 조사실' };
         } else {
@@ -145,9 +146,9 @@
       target = { name: '계단을 내려가 지하 자료실로', pos: [14.0, -3.6, -2.7], room: '지하 계단' };
     } else if (camX < 28) {
       if (hg && !isSolved('archive-source')) {
-        target = { name: '중앙 책상의 검열 기록 복원', pos: CLUE_COORDS.archive_records, room: '지하 자료실' };
+        target = { name: '선반 흰 서류뭉치 ② · 명단 대조', pos: CLUE_COORDS.archive_records, room: '지하 자료실' };
       } else if (hg && !isSolved('archive-language')) {
-        target = { name: '책장 앞 우리말 기록 풀기', pos: CLUE_COORDS.archive_language, room: '지하 자료실' };
+        target = { name: '선반 흰 서류뭉치 ① · 우리말 기록', pos: CLUE_COORDS.archive_language, room: '지하 자료실' };
       } else {
         target = { name: '자료실 끝 암실 철문 열기', pos: CLUE_COORDS.darkroom_door, room: '자료실 끝' };
       }
@@ -172,7 +173,7 @@
     // [좌측 상단] 방 번호와 이름 실시간 동기화
     var roomNameEl = document.getElementById('hud-room-name');
     if (roomNameEl) {
-      if (camX < 5.4) roomNameEl.textContent = '제1실 · 京城日報 活版植字室 (1934)';
+      if (camX < 5.4) roomNameEl.textContent = gameInstance.camera.position.z < -16.25 ? '1층 · 미제사건 조사실' : '제1실 · 京城日報 活版植字室 (1934)';
       else if (camX < 14) roomNameEl.textContent = '계단실 · 지하 비밀 통로';
       else if (camX < 28) roomNameEl.textContent = '제2실 · 지하 사료 보관실';
       else if (camX < 35) roomNameEl.textContent = '제3실 · 보도사진 현상 암실';

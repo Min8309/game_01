@@ -8,7 +8,7 @@ class ArchiveSpace{
   this.game=game;this.T=THREE;this.scene=game.scene;this.room=game.room;this.player=game.playerControls;this.open=false;this.unlocked=false;this.progress=0;this.zone='main';this.solved=false;this.originalLocationTitle=document.querySelector('.location-title').textContent;
   this.group=new THREE.Group();this.group.name='mobile-underground-archive';this.scene.add(this.group);
   this.ambient=new THREE.AmbientLight(0x819386,.25);this.ambient.visible=false;this.group.add(this.ambient);
-  this.materials=this.makeMaterials();this.cutDoorway();this.buildEntrance();this.buildStairs();this.buildArchive();const shell=this.group;this.group=this.contents;this.buildEditingProps();this.group=shell;this.installMovement();
+  this.materials=this.makeMaterials();this.cutDoorway();this.buildEntrance();this.buildStairs();this.buildStairDecay();this.buildArchive();const shell=this.group;this.group=this.contents;this.buildEditingProps();this.group=shell;this.installMovement();
   this.originalFog={color:this.scene.fog.color.clone(),density:this.scene.fog.density};
   this.notice=document.createElement('div');this.notice.id='archive-route-notice';this.notice.setAttribute('role','status');document.body.appendChild(this.notice);this.notice.hidden=true;
  }
@@ -53,6 +53,29 @@ class ArchiveSpace{
   for(const z of[-3.72,-1.68]){const rail=this.box(Math.hypot(6.4,3.6),.04,.045,9,-.85,z,iron);rail.rotation.z=-Math.atan2(3.6,6.4);}
   this.light(5.55,2.45,-2.7,5);this.light(9.4,.3,-2.7,7);this.light(13.1,-1.05,-2.7,6);
  }
+ buildStairDecay(){
+  const T=this.T,decor=new T.Group();decor.name='aged-basement-stairs';this.group.add(decor);this.stairDecay=decor;
+  // Shared canvas maps and one instanced rubble draw keep the staircase light.
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const c=canvas.getContext('2d');
+  c.strokeStyle='rgba(218,211,185,.7)';c.lineWidth=.9;
+  const angles=Array.from({length:12},(_,i)=>.04+i*1.48/11);
+  for(const a of angles){c.beginPath();c.moveTo(8,8);c.lineTo(8+Math.cos(a)*255,8+Math.sin(a)*255);c.stroke();}
+  for(let r=28;r<256;r+=25){c.beginPath();for(let i=0;i<angles.length;i++){const a=angles[i],x=8+Math.cos(a)*r,y=8+Math.sin(a)*r;if(!i)c.moveTo(x,y);else{const prev=angles[i-1],mid=(prev+a)/2;c.quadraticCurveTo(8+Math.cos(mid)*(r-8),8+Math.sin(mid)*(r-8),x,y);}}c.stroke();}
+  const map=new T.CanvasTexture(canvas);map.colorSpace='srgb';const web=new T.MeshStandardMaterial({map,transparent:true,opacity:.52,roughness:1,side:2,depthWrite:false,alphaTest:.015});
+  const plane=new T.PlaneGeometry(1,1);this.stairWebs=[];
+  for(const [x,z,turn]of [[5.5,-2.7,Math.PI/2],[6.3,-3.795,0],[7.9,-1.605,Math.PI],[9.4,-3.795,0],[11,-1.605,Math.PI],[12.1,-3.795,0]]){
+   const m=new T.Mesh(plane,web);m.name='stair-cobweb';m.position.set(x,groundHeight(x)+2.02,z);m.rotation.y=turn;m.scale.set(x===5.5?1.55:1.15,.95,1);m.raycast=()=>{};decor.add(m);this.stairWebs.push(m);
+  }
+  const grime=document.createElement('canvas');grime.width=128;grime.height=256;const g=grime.getContext('2d');
+  for(let i=0;i<35;i++){const x=(i*47)%128,y=(i*31)%110,len=40+(i*23)%145;g.fillStyle=i%3?'rgba(13,20,13,.25)':'rgba(95,54,26,.3)';g.fillRect(x,y,2+i%7,len);}
+  g.strokeStyle='rgba(8,11,8,.8)';g.lineWidth=1.2;g.beginPath();g.moveTo(64,0);for(let y=12;y<240;y+=14)g.lineTo(64+Math.sin(y*.19)*15,y);g.stroke();
+  const dirtMap=new T.CanvasTexture(grime),dirt=new T.MeshBasicMaterial({map:dirtMap,transparent:true,opacity:.65,side:2,depthWrite:false});
+  for(const [x,z]of [[6.8,-3.796],[8.6,-1.604],[10.4,-3.796],[12,-1.604]]){const m=new T.Mesh(plane,dirt);m.position.set(x,groundHeight(x)+1.15,z);m.scale.set(.85,1.9,1);m.raycast=()=>{};decor.add(m);}
+  const rubble=new T.InstancedMesh(new T.BoxGeometry(1,1,1),this.materials.dark,28),t=new T.Object3D();
+  for(let i=0;i<28;i++){const step=i%20,x=5.8+(step+.45)*.32;t.position.set(x,-(step+1)*.18+.025,i%2?-3.65:-1.75);t.scale.set(.045+(i%3)*.025,.035,.06+(i%4)*.015);t.rotation.set(.1*i,.7*i,.2*i);t.updateMatrix();rubble.setMatrixAt(i,t.matrix);}rubble.raycast=()=>{};decor.add(rubble);
+  const paperMat=new T.MeshStandardMaterial({color:0x776d4e,roughness:1,side:2});
+  for(let i=0;i<5;i++){const step=2+i*3,m=new T.Mesh(new T.PlaneGeometry(.18,.23),paperMat);m.rotation.set(-Math.PI/2,0,i*.7);m.position.set(5.8+(step+.5)*.32,-(step+1)*.18+.009,i%2?-3.53:-1.9);m.raycast=()=>{};decor.add(m);}
+ }
  buildArchive(){
   const f=-3.6,{stone,wood,paper,iron,dark}=this.materials;
   this.box(14,.18,7,21,f-.09,-2.7,stone);
@@ -62,19 +85,23 @@ class ArchiveSpace{
   const vault=new this.T.Mesh(new this.T.CylinderGeometry(3.5,3.5,14,24,1,true,0,Math.PI),stone);vault.rotation.z=Math.PI/2;vault.position.set(21,f+1.8,-2.7);this.group.add(vault);
   for(const x of[14.2,17.6,21,24.4,27.7]){const rib=new this.T.Mesh(new this.T.CylinderGeometry(3.43,3.43,.14,24,1,true,0,Math.PI),iron);rib.rotation.z=Math.PI/2;rib.position.set(x,f+1.8,-2.7);this.group.add(rib);}
   const shell=this.group;this.contents=new this.T.Group();this.contents.name="archive-contents";shell.add(this.contents);this.group=this.contents;
-  // One instanced draw for the many book/document piles.
+  this.paperClues=[];
+  // Two real shelf packets carry the quizzes; other piles stay instanced.
   const books=new this.T.InstancedMesh(new this.T.BoxGeometry(1,1,1),paper,240);const transform=new this.T.Object3D();let bookIndex=0;
-  for(const z of[-5.68,.28])for(let bay=0;bay<5;bay++){const x=15.35+bay*2.5;this.box(1.9,2.4,.12,x,f+1.2,z,wood);for(const side of[-.94,.94])this.box(.08,2.4,.8,x+side,f+1.2,z,iron,true);for(let shelf=0;shelf<4;shelf++){const y=f+.25+shelf*.56;this.box(1.95,.07,.85,x,y,z,wood,true);for(let b=0;b<6;b++){transform.position.set(x-.76+b*.29,y+.08+(b%2)*.04,z);transform.scale.set(.23,.11+(b%3)*.035,.45+(b%2)*.15);transform.rotation.set(0,(b%3-1)*.12,0);transform.updateMatrix();books.setMatrixAt(bookIndex++,transform.matrix);}}}
+  for(const z of[-5.68,.28])for(let bay=0;bay<5;bay++){const x=15.35+bay*2.5;this.box(1.9,2.4,.12,x,f+1.2,z,wood);for(const side of[-.94,.94])this.box(.08,2.4,.8,x+side,f+1.2,z,iron,true);for(let shelf=0;shelf<4;shelf++){const y=f+.25+shelf*.56;this.box(1.95,.07,.85,x,y,z,wood,true);for(let b=0;b<6;b++){transform.position.set(x-.76+b*.29,y+.08+(b%2)*.04,z);transform.scale.set(.23,.11+(b%3)*.035,.45+(b%2)*.15);transform.rotation.set(0,(b%3-1)*.12,0);if(z===-5.68&&(bay===1||bay===2)&&shelf===2&&(b===2||b===3))transform.scale.set(0,0,0);transform.updateMatrix();books.setMatrixAt(bookIndex++,transform.matrix);}}}
   this.group.add(books);
+  for(const [id,x,type,label]of [['archive-language',17.815,'history_archive_hint','흰 서류뭉치 ① · 우리말 기록'],['archive-source',20.315,'history_archive_source','흰 서류뭉치 ② · 명단 대조']]){
+   const packet=new this.T.Group();packet.name='shelf-paper-'+id;packet.position.set(x,f+1.49,-5.68);packet.userData={isInteractable:true,type,clueId:'shelf_'+id,questionId:id,name:label,description:'선반 위 흰 서류뭉치. 가까이 겨냥해 기록을 조사하세요.'};this.group.add(packet);
+   const meshes=[];for(let i=0;i<3;i++){const m=new this.T.MeshStandardMaterial({color:0xe5dfc9,roughness:1,emissive:0x39c85a,emissiveIntensity:0});meshes.push(this.box(.5-i*.018,.043,.52-i*.012,0,(i-1)*.046,0,m,false,packet));}
+   const border=new this.T.Group();border.visible=false;packet.add(border);const green=new this.T.MeshBasicMaterial({color:0x39c85a});
+   for(const [w,d,px,pz]of [[.55,.014,0,-.29],[.55,.014,0,.29],[.014,.58,-.275,0],[.014,.58,.275,0]]){const edge=this.box(w,.012,d,px,.076,pz,green,false,border);edge.userData.isPuzzleMarker=true;edge.raycast=()=>{};}
+   this.paperClues.push({id,object:packet,meshes,border});
+  }
   for(let i=0;i<18;i++){const x=15.3+(i%6)*2.15,z=i<9?-4.95:-.55;const box=this.box(.65,.35,.5,x,f+.18+(i%3)*.32,z,wood,true);box.rotation.y=(i%3-1)*.2;}
   for(let i=0;i<22;i++){const page=new this.T.Mesh(new this.T.PlaneGeometry(.3+(i%3)*.06,.42),paper);page.rotation.set(-Math.PI/2,0,i*.9);page.position.set(14.5+(i%9)*1.35,f+.012,-4.3+(i%4)*1.05);this.group.add(page);}
   const table=this.box(2.1,.14,1.1,22,f+.92,-2.7,wood,true);for(const dx of[-.9,.9])for(const dz of[-.42,.42])this.box(.09,.92,.09,22+dx,f+.46,-2.7+dz,iron,true);
   const dossier=this.box(.62,.06,.48,22,f+1.03,-2.7,paper);dossier.userData={isInteractable:true,clueId:'mobile_archive_records',type:'mobile_archive_records',name:'지하 편집실 검열문 대조 작업대',description:'붉은 압수 도장이 찍힌 검열 기사 대장과 회전식 날짜 스탬프. 서랍 틈의 천공 먹지를 맞춰야 한다.'};
   this.editingData=dossier.userData;this.markPuzzle(22,f+1.065,-2.7,.7,.55);const label=this.sign('檢閱 · 퍼즐',.6,.16,true);label.rotation.x=-Math.PI/2;label.position.set(22,f+1.067,-2.7);label.userData=dossier.userData;this.group.add(label);
-  for(const [x,z,text] of [[20,-5.15,'자료 A는 B에 포함'],[22.6,-2.7,'정정표 · 2명 제외']]){
-   const note=this.sign(text,1.4,.35,true);note.position.set(x,f+1.65,z);
-   note.userData={isInteractable:true,type:'mobile_archive_hint',clueId:'archive_date_note_'+x,name:'편집자의 자료 대조 메모',description:'중앙 책상의 A·B·C 명단을 비교하세요. A의 이름은 B에 이미 들어 있으며, 마지막 정정표까지 반영해야 합니다.'};this.group.add(note);
-  }
   const exit=this.sign('植字室 ←',1.1,.28);exit.rotation.y=Math.PI/2;exit.position.set(14.13,f+2.95,-2.7);this.group.add(exit);
   this.light(16.5,f+3.15,-2.7,16);this.light(21.2,f+3.4,-2.7,22);this.light(25.8,f+3.15,-2.7,14);
   this.rubble=new this.T.InstancedMesh(new this.T.BoxGeometry(1,1,1),dark,42);for(let i=0;i<42;i++){transform.position.set(14.8+(i%12)*1.04,f+.03,i%2?-.9:-4.5);transform.scale.set(.04+(i%4)*.035,.035,.07+(i%3)*.025);transform.rotation.set(i,.5*i,i*.7);transform.updateMatrix();this.rubble.setMatrixAt(i,transform.matrix);}this.group.add(this.rubble);this.group=shell;

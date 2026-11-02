@@ -22,7 +22,7 @@
    if(!data||data.version!==1||data.mode!==S.mode||!Array.isArray(data.solved))return false;
    restoring=true;const valid=new Set(h.questions.map(q=>q.id));h.state.solved=new Set(data.solved.filter(id=>valid.has(id)));h.readRecords=new Set([...(Array.isArray(data.readRecords)?data.readRecords:[]),...h.state.solved].filter(id=>valid.has(id)));h.state.attempts=new Map((Array.isArray(data.attempts)?data.attempts:[]).filter(a=>Array.isArray(a)&&valid.has(a[0])&&Number.isInteger(a[1])&&a[1]>=0));
    for(const item of g.sharedInventory.items())g.sharedInventory.removeItem(item.id);
-   for(const item of (Array.isArray(data.inventory)?data.inventory:[]).slice(0,32))if(item&&typeof item.id==='string'&&/^[a-z0-9_-]{1,64}$/.test(item.id))g.sharedInventory.addItem({id:item.id,name:String(item.name||item.id).slice(0,80),desc:String(item.desc||'').slice(0,300)});
+   for(const item of (Array.isArray(data.inventory)?data.inventory:[]).slice(0,32))if(item&&typeof item.id==='string'&&/^[a-z0-9_-]{1,64}$/.test(item.id))g.sharedInventory.addItem({id:item.id,name:String(item.name||item.id).slice(0,80),desc:String(item.desc||'').replace(/출구방|출구 방/g,'미제사건 조사실').slice(0,300)});
    const cabinet=data.cabinet||{};h.cabinet.discovered=!!cabinet.discovered;
    h.cabinet.drawers.forEach((d,i)=>d.opened=!!cabinet.opened?.[i]);
    if(h.cabinet.discovered)h.cabinet.note.userData={isInteractable:true,clueId:'history_cabinet',type:'history_cabinet',name:'서랍 안의 역할표 · 난이도 중',description:'이길용—기자 / 이상범—화가'};
@@ -56,11 +56,22 @@
   timer.update=function(){if(S.mode==='challenge'){if(S.deadline)this.startedAt=this.now()-(600000-(S.deadline-Date.now()));return nativeUpdate();}if(!S.started)return;this.display.innerHTML='<span>복원 기록</span><strong>'+count()+' / 14</strong><small></small>';this.display.querySelector('small').textContent=document.getElementById('qtText')?.textContent||'주변 단서를 조사하세요';g.props.setCountdown('自由探索');};
   timer.finish=function(){if(S.mode==='free')return;remove(slot());return nativeFinish();};
   document.addEventListener('click',e=>{if(!S.started||S.finished)return;const b=e.target.closest('button');if(b&&/힌트/.test(b.textContent)){S.hints++;S.save();}},true);
-  const saveSoon=()=>queueMicrotask(()=>S.save());for(const method of ['answer','setClock']){const old=h.state[method].bind(h.state);h.state[method]=(...args)=>{const before=h.state.solved.size,result=old(...args);if(h.state.solved.size>before)enqueue('record-'+args[0]);saveSoon();return result;};}
+  const saveSoon=()=>queueMicrotask(()=>{if(S.mode==='free')timer.update();S.save();});for(const method of ['answer','setClock']){const old=h.state[method].bind(h.state);h.state[method]=(...args)=>{const before=h.state.solved.size,result=old(...args);if(h.state.solved.size>before)enqueue('record-'+args[0]);saveSoon();return result;};}
   const open=h.cabinet.open.bind(h.cabinet);h.cabinet.open=i=>{open(i);if(h.cabinet.drawers[i]?.opened)enqueue('drawer-'+i);saveSoon();};
   for(const method of ['select','reset','submit']){const old=exit.mapPuzzle[method].bind(exit.mapPuzzle);exit.mapPuzzle[method]=(...args)=>{const result=old(...args);if(method==='select'&&result)enqueue('map-connection');saveSoon();return result;};}
   window.addEventListener('inventory-changed',()=>{if(g.sharedInventory.hasItem('rusty_key'))enqueue('key-found');saveSoon();});
-  const director=g.ghostEncounters,updateGhost=director.update.bind(director);director.update=function(now,enabled,elapsed){if(this.stopped)return;this.popupSound?.prepare?.();if(reading()||!enabled){this.hide();return;}if(!this.active&&queue.length&&now-lastScare>8000){queue.shift();lastScare=now;this.forceTrigger(SikjasilGhosts.GHOSTS[Math.floor(Math.random()*SikjasilGhosts.GHOSTS.length)].id);}return updateGhost(now,!!this.active,elapsed);};
+  const director=g.ghostEncounters,updateGhost=director.update.bind(director),schedule=new SikjasilGhosts.EndlessSchedule();director.freeSchedule=schedule;
+  director.update=function(now,enabled,elapsed){
+   if(this.stopped)return;this.popupSound?.prepare?.();
+   if(reading()||!enabled||!S.started||S.finished||g.gameEnded||!this.canShow()){schedule.pause();this.hide();return;}
+   const progress=count()/14;
+   if(S.mode==='free'){
+    schedule.arm(now,progress);
+    if(!this.active&&queue.length&&now-lastScare>8000){schedule.accelerate(now);queue.shift();}
+    if(!this.active&&schedule.due(now)){if(this.trigger(schedule.encounter(elapsed),now)){lastScare=now;schedule.reschedule(now,progress);}}
+   }else if(!this.active&&queue.length&&now-lastScare>8000){queue.shift();lastScare=now;this.trigger(schedule.encounter(elapsed),now);}
+   return updateGhost(now,!!this.active,elapsed);
+  };
   const roomAudio=exit.horror.audio,updateRoomAudio=roomAudio.update.bind(roomAudio);roomAudio.update=(inside,pan)=>updateRoomAudio(inside&&!reading(),pan);
   const tension=g.tensionDirector,updateTension=tension.update.bind(tension);tension.update=()=>{if(reading()){tension.silence();return;}return updateTension();};
   const inspect=g.interactionManager.triggerInspect.bind(g.interactionManager);g.interactionManager.triggerInspect=(...args)=>{director.hide();tension.silence();roomAudio.stop();return inspect(...args);};

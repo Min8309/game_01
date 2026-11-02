@@ -140,6 +140,11 @@
           interaction.refreshTarget?.();
           if (!interaction) return;
           if (interaction.isInspecting) { interaction.closeInspect(); return; }
+          // A precisely aimed shelf packet opens directly, even when another
+          // nearby packet is also eligible for the assistance list.
+          var exactOwner=game.performanceControls?.aimHit?.object;
+          while(exactOwner&&!exactOwner.userData?.isInteractable)exactOwner=exactOwner.parent;
+          if(exactOwner?.userData.questionId&&exactOwner.userData.clueId===interaction.currentInteractable?.clueId){interaction.triggerInspect(interaction.currentInteractable);return;}
           if (nearbyClues.length > 1 && nearbyClues.some(function(item) { return item.clueId === interaction.currentInteractable?.clueId; })) {
             chooseNearbyClue();
             return;
