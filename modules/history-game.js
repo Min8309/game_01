@@ -41,7 +41,7 @@ function install(game){
  function syncDoors(){if(mainReady()&&game.room.openDoor())game.soundManager.playMetalDoorOpen();archive.unlocked=state.complete('main')&&exitRoom.mapPuzzle.solved;}
  function node(tag,text,parent){const e=document.createElement(tag);e.textContent=text;if(parent)parent.appendChild(e);return e;}
  function shell(title){view.replaceChildren();bar.replaceChildren();const host=node('section','',view);host.className='gm-expansion history-puzzle';node('h2',title,host);return host;}
- function goal(){const room=game.camera.position.x>=35?'photos':game.camera.position.x>=28?'darkroom':game.camera.position.x>=14?'archive':'main';const remaining=state.remaining(room);const text=remaining.length?`${ROOMS[room]} · 남은 ${remaining.length}개 · 다음: ${remaining[0].place} [${remaining[0].level}]`:room==='main'?('1층 완료 · '+mainNext()):room==='archive'?'자료실 완료 · 끝의 검은 커튼 →':room==='darkroom'?'암실 완료 · 뒤쪽 검은 커튼 →':'모든 기록을 복원했습니다.';const objective=document.getElementById('exploration-objective');if(objective) {if(objective.textContent!==text)objective.textContent=text;objective.hidden=false;}if(archive.notice.textContent!==text)archive.notice.textContent=text;archive.notice.hidden=room==='main';return text;}
+ function goal(){if(game.trapRoom?.contains()){const text=game.trapRoom.objective(),el=document.getElementById('exploration-objective');if(el){el.textContent=text;el.hidden=false;}return text;}const room=game.camera.position.x>=35?'photos':game.camera.position.x>=28?'darkroom':game.camera.position.x>=14?'archive':'main';const remaining=state.remaining(room);const text=remaining.length?`${ROOMS[room]} · 남은 ${remaining.length}개 · 다음: ${remaining[0].place} [${remaining[0].level}]`:room==='main'?('1층 완료 · '+mainNext()):room==='archive'?'자료실 완료 · 끝의 검은 커튼 →':room==='darkroom'?'암실 완료 · 뒤쪽 검은 커튼 →':'모든 기록을 복원했습니다.';const objective=document.getElementById('exploration-objective');if(objective) {if(objective.textContent!==text)objective.textContent=text;objective.hidden=false;}if(archive.notice.textContent!==text)archive.notice.textContent=text;archive.notice.hidden=room==='main';return text;}
  function finishRoom(room){
   if(!state.complete(room))return;
   if(room==='archive'){archive.solved=true;game.sharedInventory.addItem({id:'darkroom_iron_key',name:'암실 철문 열쇠',desc:'자료실의 출처·언어 기록을 복원해 얻은 열쇠.'});archive.playPuzzleEffect('editing');}
@@ -133,12 +133,15 @@ function install(game){
  // Capture before legacy inspection listeners so old puzzles cannot replace the new tasks.
  const nativeRender=game.inspectViewRenderer.render.bind(game.inspectViewRenderer);
  const mapped={clock:'clock',calendar:'calendar',drawer_24:'drawer',proof:'proof',newspaper:'proof',history_poster:'poster',history_cabinet:'cabinet',history_book:'book',history_archive_hint:'archive-language',history_archive_source:'archive-source'};
- const guided={mirror_plate:'calendar',drawer_locked:'drawer',desk:'proof',galley_slot:'proof',print_roller:'proof',cursed_cube:'cabinet',glasses:'cabinet',apron:'cabinet',rack:'book',type_rack_label:'book',censor_poster:'poster',radio:'book',mobile_archive_hint:'archive-source'};
- function handled(data){return Boolean(mapped[data.type]||guided[data.type]||['cursed_key','history_exit_note','history_exit_map','history_cabinet_drawer','mobile_archive_records','mobile_darkroom_station','drying_missing_photo','drying_missing_note','mobile_archive_door','mobile_darkroom_curtain'].includes(data.type)||data.clueId==='clue_exit_door');}
+ const guided={mirror_plate:'calendar',drawer_locked:'drawer',desk:'proof',galley_slot:'proof',print_roller:'proof',glasses:'cabinet',apron:'cabinet',rack:'book',type_rack_label:'book',censor_poster:'poster',radio:'book',mobile_archive_hint:'archive-source'};
+ function handled(data){return Boolean(mapped[data.type]||guided[data.type]||['cursed_cube','inferno_gate','inferno_seal','cursed_key','history_exit_note','history_exit_map','history_cabinet_drawer','mobile_archive_records','mobile_darkroom_station','drying_missing_photo','drying_missing_note','mobile_archive_door','mobile_darkroom_curtain'].includes(data.type)||data.clueId==='clue_exit_door');}
  game.inspectViewRenderer.render=data=>{if(!handled(data)){nativeRender(data);game.interactionManager.inspectTagEl.textContent+=' · 선택 장치 · 난이도 중';}};
  window.addEventListener('space-inspect',event=>{const data=event.detail;if(!handled(data))return;event.stopImmediatePropagation();
   if(mapped[data.type])quiz(mapped[data.type]);
   else if(guided[data.type])directGuide(guided[data.type]);
+  else if(data.type==='cursed_cube')game.trapRoom.inspectEye();
+  else if(data.type==='inferno_gate')game.trapRoom.inspectDoor();
+  else if(data.type==='inferno_seal')game.trapRoom.inspectSeal();
   else if(data.type==='cursed_key')inspectKey();
   else if(data.type==='history_exit_note'||data.type==='history_exit_map')inspectExitPaper();
   else if(data.type==='history_cabinet_drawer'){cabinet.open(data.drawerIndex);game.interactionManager.closeInspect();}
@@ -197,7 +200,7 @@ game.scene.traverse(object=>{const data=object.userData;if(data.clueId==='clue_e
     const solved=state.solved.has(q.id);
     const hintText=!solved&&q.hints&&window.GyeongSession?.mode!=='challenge'?` — ${q.hints[0]}`:'';
     node('p',`${solved?'✓':'未'} ${q.place} (${q.title}) · 난이도 ${q.level}${hintText}`,records);
-  }}node('h4','1층 사건 조사실',records);node('p',`${exitRoom.mapPuzzle.solved?'✓':'未'} 붉은 실의 사건 지도 · ${exitRoom.keyPlaced?'현장 네 곳을 시간순으로 연결':'열쇠를 지도 잠금장치에 삽입'}`,records);};
+  }}if(game.trapRoom){node('h4','선택 탐험 · 지옥의 문',records);node('p',game.trapRoom.state.released?'✓ 동굴의 봉인 해제':game.trapRoom.state.trapped?'문이 닫힘 · 안쪽 봉인석 조사':game.trapRoom.state.unlocked?'문 개방 · 식자실 왼쪽 벽': '잠긴 문 · 테이블 눈동자 활자 조사',records);}node('h4','1층 사건 조사실',records);node('p',`${exitRoom.mapPuzzle.solved?'✓':'未'} 붉은 실의 사건 지도 · ${exitRoom.keyPlaced?'현장 네 곳을 시간순으로 연결':'열쇠를 지도 잠금장치에 삽입'}`,records);};
  game.notebookUI.render();
  const guide=node('button','진행 안내');guide.type='button';guide.id='history-progress-button';guide.style.display='none';document.body.appendChild(guide);guide.onclick=()=>{if(game.gameEnded||!game.playerControls.controls.isLocked)return;game.interactionManager.triggerInspect({type:'history_progress',name:'방별 기록과 힌트',description:'다음 방의 봉인을 풀기 위한 안내'});list(game.camera.position.x>=35?'photos':game.camera.position.x>=28?'darkroom':game.camera.position.x>=14?'archive':'main','방별 기록 · 진행 안내');};
  game.playerControls.controls.addEventListener('lock',()=>{guide.hidden=game.gameEnded;});game.playerControls.controls.addEventListener('unlock',()=>{guide.hidden=true;});guide.hidden=true;

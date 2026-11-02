@@ -100,7 +100,9 @@
     var keyPlaced = exitRoom ? exitRoom.keyPlaced : false;
 
     // 1층 메인 공간
-    if (camX < 5.4) {
+    if (gameInstance.trapRoom?.contains()) {
+      target={name:gameInstance.trapRoom.state.released?'지옥의 문 · 식자실로 돌아가기':gameInstance.trapRoom.state.trapped?'봉인석을 눌러 문 다시 열기':'눈이 박힌 동굴 안쪽 탐험',pos:gameInstance.trapRoom.state.released?[-5,1.4,-1]:[-10.7,.72,-1],room:'함정 방 · 지옥의 문'};
+    } else if (camX < 5.4) {
       if (hg && state) {
         if (!isSolved('calendar')) {
           target = { name: '벽의 달력 조사', pos: CLUE_COORDS.calendar, room: '1층 식자실' };
@@ -173,7 +175,8 @@
     // [좌측 상단] 방 번호와 이름 실시간 동기화
     var roomNameEl = document.getElementById('hud-room-name');
     if (roomNameEl) {
-      if (camX < 5.4) roomNameEl.textContent = gameInstance.camera.position.z < -16.25 ? '1층 · 미제사건 조사실' : '제1실 · 京城日報 活版植字室 (1934)';
+      if(gameInstance.trapRoom?.contains())roomNameEl.textContent='함정 방 · 지옥의 문';
+      else if (camX < 5.4) roomNameEl.textContent = gameInstance.camera.position.z < -16.25 ? '1층 · 미제사건 조사실' : '제1실 · 京城日報 活版植字室 (1934)';
       else if (camX < 14) roomNameEl.textContent = '계단실 · 지하 비밀 통로';
       else if (camX < 28) roomNameEl.textContent = '제2실 · 지하 사료 보관실';
       else if (camX < 35) roomNameEl.textContent = '제3실 · 보도사진 현상 암실';
@@ -229,7 +232,7 @@
     markerEl.style.display = 'none'; // 초록 목표 마커 표시 끄기 유지
 
     if(qtBadgeEl.textContent!==currentTarget.room)qtBadgeEl.textContent = currentTarget.room;
-    if(qtTextEl.textContent!==currentTarget.name)qtTextEl.textContent = currentTarget.name;
+    if(qtTextEl.textContent!==currentTarget.name){qtTextEl.textContent=currentTarget.name;if(gameInstance.session?.mode==='free'){var nextLabel=document.querySelector('#play-timer small');if(nextLabel)nextLabel.textContent=currentTarget.name;}}
     if(qtDistEl.textContent!==dist.toFixed(1) + 'm')qtDistEl.textContent = dist.toFixed(1) + 'm';
 
     // Three.js 벡터 싱글톤 초기화

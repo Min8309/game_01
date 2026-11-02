@@ -13,10 +13,10 @@
   S.elapsed=()=>S.mode==='challenge'&&S.deadline?Math.max(0,600000-(S.deadline-Date.now())):S.elapsedBase+(S.started?Date.now()-S.startedWall:0);
   const completed=()=>h.state.solved.size===h.questions.length&&exit.mapPuzzle.solved;
   const reading=()=>g.interactionManager.isInspecting||g.notebookUI.isOpen||!!document.querySelector('dialog[open]')||document.hidden;
-  const slot=()=>PREFIX+S.mode;const ready=()=>g.ghostEncounters.ready&&g.performanceControls.sceneReady;
+  const slot=()=>PREFIX+S.mode;const ready=()=>g.ghostEncounters.ready&&g.performanceControls.sceneReady&&(!g.trapRoom||g.trapRoom.assetsReady);
   const count=()=>h.state.solved.size+Number(exit.mapPuzzle.solved);
   function enqueue(id){if(!S.started||S.finished||restoring||seen.has(id))return;seen.add(id);if(queue.length<4)queue.push(id);}
-  function snapshot(){return{version:1,mode:S.mode,name:S.name,hints:S.hints,deadline:S.deadline,elapsed:S.elapsed(),solved:[...h.state.solved],readRecords:[...h.readRecords],attempts:[...h.state.attempts],inventory:g.sharedInventory.items(),position:g.camera.position.toArray(),rotation:[g.camera.rotation.x,g.camera.rotation.y],map:{key:exit.keyPlaced,route:exit.mapPuzzle.route,solved:exit.mapPuzzle.solved},cabinet:{discovered:h.cabinet.discovered,opened:h.cabinet.drawers.map(d=>d.opened)},curtains:dark.curtains.map(c=>c.opened),seen:[...seen],savedAt:Date.now()};}
+  function snapshot(){return{version:1,mode:S.mode,name:S.name,hints:S.hints,deadline:S.deadline,elapsed:S.elapsed(),solved:[...h.state.solved],readRecords:[...h.readRecords],attempts:[...h.state.attempts],inventory:g.sharedInventory.items(),position:g.camera.position.toArray(),rotation:[g.camera.rotation.x,g.camera.rotation.y],map:{key:exit.keyPlaced,route:exit.mapPuzzle.route,solved:exit.mapPuzzle.solved},cabinet:{discovered:h.cabinet.discovered,opened:h.cabinet.drawers.map(d=>d.opened)},curtains:dark.curtains.map(c=>c.opened),trap:g.trapRoom?.snapshot(),seen:[...seen],savedAt:Date.now()};}
   S.save=(force=false)=>{if(!S.started||S.finished||g.gameEnded||restoring)return;const data=snapshot(),serialized=JSON.stringify({...data,savedAt:0,elapsed:0});if((force||serialized!==lastSave)&&write(slot(),data)){lastSave=serialized;status.textContent='진행 자동 저장됨 · 이 브라우저에서 이어하기';}};
   function restore(data){
    if(!data||data.version!==1||data.mode!==S.mode||!Array.isArray(data.solved))return false;
@@ -36,8 +36,9 @@
    dark.curtains.forEach((c,i)=>c.opened=!!data.curtains?.[i]&&(i===0?archive.solved:dark.developed));
    for(let i=0;i<3;i++)if(dark.developed&&h.state.solved.has('photo-'+i))dark.missingPerson.choose(i,'record');
    if(h.state.complete('main')&&(exit.keyPlaced||g.sharedInventory.hasItem('rusty_key'))){g.room.openDoor();g.room.updateDoor(5);}
+   g.trapRoom?.restore(data.trap);
    const p=data.position;let maxX=archive.unlocked?(archive.solved?(dark.developed?41:34.5):27.5):4.5;
-   if(Array.isArray(p)&&p.length===3&&p.every(Number.isFinite)&&p[0]>=-4.5&&p[0]<=maxX&&p[2]>=-22.1&&p[2]<=5.5){const floor=GyeongArchiveSpace.groundHeight(p[0]);g.playerControls.standHeight=1.65+floor;g.playerControls.crouchHeight=.95+floor;g.playerControls.currentHeight=1.65+floor;g.camera.position.set(p[0],1.65+floor,p[2]);if(p[0]>=35)dark.missingIntroShown=true;if(Array.isArray(data.rotation)&&data.rotation.every(Number.isFinite)){g.camera.rotation.x=Math.max(-1.4,Math.min(1.4,data.rotation[0]));g.camera.rotation.y=data.rotation[1];}}
+   if(Array.isArray(p)&&p.length===3&&p.every(Number.isFinite)&&((p[0]>=-4.5&&p[0]<=maxX&&p[2]>=-22.1&&p[2]<=5.5)||g.trapRoom?.canRestorePosition(p))){const floor=GyeongArchiveSpace.groundHeight(p[0]);g.playerControls.standHeight=1.65+floor;g.playerControls.crouchHeight=.95+floor;g.playerControls.currentHeight=1.65+floor;g.camera.position.set(p[0],1.65+floor,p[2]);if(p[0]>=35)dark.missingIntroShown=true;if(Array.isArray(data.rotation)&&data.rotation.every(Number.isFinite)){g.camera.rotation.x=Math.max(-1.4,Math.min(1.4,data.rotation[0]));g.camera.rotation.y=data.rotation[1];}}
    S.hints=Number.isInteger(data.hints)&&data.hints>=0?data.hints:0;S.elapsedBase=Math.max(0,Number(data.elapsed)||0);S.deadline=Number.isFinite(data.deadline)?data.deadline:null;S.name=String(data.name||S.name).slice(0,16);seen=new Set(Array.isArray(data.seen)?data.seen:[]);restoring=false;g.notebookUI.render();return true;
   }
   g.startScreen.querySelector('.intro-desc').textContent='1934년 경성, 시간이 뒤틀린 식자실에 1936년·1942년의 미래 기록까지 흘러들었습니다. 각 자료의 연도를 구분해 사라진 기록을 복원하세요. 자유 탐색은 시간제한 없음·자동 저장, 10분 도전은 특별 완주 보상을 제공합니다.';
@@ -59,6 +60,7 @@
   const saveSoon=()=>queueMicrotask(()=>{if(S.mode==='free')timer.update();S.save();});for(const method of ['answer','setClock']){const old=h.state[method].bind(h.state);h.state[method]=(...args)=>{const before=h.state.solved.size,result=old(...args);if(h.state.solved.size>before)enqueue('record-'+args[0]);saveSoon();return result;};}
   const open=h.cabinet.open.bind(h.cabinet);h.cabinet.open=i=>{open(i);if(h.cabinet.drawers[i]?.opened)enqueue('drawer-'+i);saveSoon();};
   for(const method of ['select','reset','submit']){const old=exit.mapPuzzle[method].bind(exit.mapPuzzle);exit.mapPuzzle[method]=(...args)=>{const result=old(...args);if(method==='select'&&result)enqueue('map-connection');saveSoon();return result;};}
+  window.addEventListener('trap-room-changed',saveSoon);
   window.addEventListener('inventory-changed',()=>{if(g.sharedInventory.hasItem('rusty_key'))enqueue('key-found');saveSoon();});
   const director=g.ghostEncounters,updateGhost=director.update.bind(director),schedule=new SikjasilGhosts.EndlessSchedule();director.freeSchedule=schedule;
   director.update=function(now,enabled,elapsed){
